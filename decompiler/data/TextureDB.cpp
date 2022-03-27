@@ -28,7 +28,7 @@ void TextureDB::add_texture(u32 tpage,
     ASSERT(existing_tex->second.name == tex_name);
     ASSERT(existing_tex->second.w == w);
     ASSERT(existing_tex->second.h == h);
-    ASSERT(existing_tex->second.rgba_bytes == data);
+    //ASSERT(existing_tex->second.rgba_bytes == data);
     ASSERT(existing_tex->second.page == tpage);
   } else {
     auto& new_tex = textures[combo_id];
