@@ -240,7 +240,7 @@
                         "demo-start"
                         )
                        (*debug-segment*
-                        "yosemite-start"
+                        "village1-hut"
                         )
                        (else
                         "title-start"

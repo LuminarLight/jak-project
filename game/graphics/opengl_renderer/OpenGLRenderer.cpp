@@ -483,7 +483,7 @@ void OpenGLRenderer::do_pcrtc_effects(float alp,
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
     glBlendEquation(GL_FUNC_ADD);
 
-    //m_blackout_renderer.draw(Vector4f(0, 0, 0, 1.f - alp), render_state, prof);
+    m_blackout_renderer.draw(Vector4f(0, 0, 0, 1.f - alp), render_state, prof);
 
     glEnable(GL_DEPTH_TEST);
   }
