@@ -106,9 +106,9 @@
     )
 
 
-(defconstant LEVEL_BT_FILE_VERSION 30)
+(defconstant LEVEL_BT_FILE_VERSION 29) ;; Version 29 is also fine like 30. Except some actor stuff. But this can be handled in other parts of the code, so loading is allowed. --LL
 (defconstant ART_GROUP_FILE_VERSION 6)
-(defconstant TPAGE_FILE_VERSION 7) ;; also used for dir
+(defconstant TPAGE_FILE_VERSION 6) ;; also used for dir ;; Version 6 works just as fine as version 7. --LL
 (defconstant LEVEL_VS_FILE_VERSION 30)
 (defconstant TX_FILE_VERSION 1)
 
@@ -183,10 +183,10 @@
             ((zero? version-override)
              (case kind 
                (((file-kind tpage) (file-kind dir-tpage))
-                7
+                6
                 )
                (((file-kind level-bt))
-                30
+                29
                 )
                (((file-kind art-group))
                 6
@@ -221,7 +221,7 @@
                )
        #f
        )
-      ((!= expected-version (-> info major-version))
+      ((> expected-version (-> info major-version))
        (format 0 "ERROR: file ~A is version ~D.~D, but needs to be ~D.x~%"
                (-> info file-name)
                (-> info major-version)
