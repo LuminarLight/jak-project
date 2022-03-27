@@ -15,10 +15,10 @@
 
   // set to true to generate plain .asm files with MIPS disassembly, with no fancy decompilation.
   // this is fast and should succeed 100% of the time.
-  "disassemble_code": false,
+  "disassemble_code": true,
 
   // Run the decompiler
-  "decompile_code": true,
+  "decompile_code": false,
 
   ////////////////////////////
   // DATA ANALYSIS OPTIONS
