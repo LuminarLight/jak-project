@@ -1970,17 +1970,17 @@
          :sound-banks '()
          :music-bank 'yosemite
          :ambient-sounds '()
-         :mood '*village1-mood*
-         :mood-func 'update-mood-village1
+         :mood '*default-mood*
+         :mood-func 'update-mood-default
          :ocean #f
          :sky #t
          :continues
          '((new 'static 'continue-point
             :name "yosemite-start"
             :level 'yosemite
-            :trans (new 'static 'vector :x -635598.9 :y 222551.66 :z 710496.25 :w 1.0)
+            :trans (new 'static 'vector :x 4498122.752 :y 201115.648 :z -15525967.872 :w 1.0)
             :quat (new 'static 'quaternion :y -0.3323 :w -0.9431)
-            :camera-trans (new 'static 'vector :x -665644.25 :y 250803.0 :z 668470.9 :w 1.0)
+            :camera-trans (new 'static 'vector :x 4498122.752 :y 201115.648 :z -15525967.872 :w 1.0)
             :camera-rot (new 'static 'array float 9 0.8129 0.0 -0.5823 0.0958 0.9863 0.1337 0.5744 -0.1645 0.8018)
             :load-commands '()
             :vis-nick 'yos
