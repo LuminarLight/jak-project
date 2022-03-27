@@ -44,7 +44,7 @@
     "DGO/VI3.DGO",
     "CGO/VILLAGEP.CGO",
     "CGO/WATER-AN.CGO",
-	  "DGO/YOS.DGO"
+	"DGO/YOS.DGO"
   ],
 
   // some objects are part of STR files (streaming data). In Jak 1 this is just animations
