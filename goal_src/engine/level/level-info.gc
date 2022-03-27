@@ -1966,7 +1966,7 @@
          :visname 'yosemite-vis
          :nickname 'yos
          :index 25
-         :packages '(finalboss)
+         :packages '(yosemite)
          :sound-banks '()
          :music-bank 'yosemite
          :ambient-sounds '()
@@ -1995,9 +1995,9 @@
          :load-commands '()
          :alt-load-commands '()
          :bsp-mask #xffffffffffffffff
-         :bsphere (new 'static 'sphere :x -40960.0 :z 40960.0 :w 1126400.0)
+         :bsphere (new 'static 'sphere :x 4498122.752 :z -16525967.872 :w 3000000.0)
 		 ;;:buzzer 7
-         :bottom-height (meters -10000000.0)
+         :bottom-height (meters -50.0)
          :run-packages '("common")
          :wait-for-load #f
          )
