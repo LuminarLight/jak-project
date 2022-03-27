@@ -1505,8 +1505,8 @@
   (let ((startup-level (case *kernel-boot-message*
                         (('play)
                      (if *debug-segment*
-                       'village1
-                       'title
+                       'yosemite
+                       #f
                        )
                          )
                      (else
