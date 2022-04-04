@@ -40,6 +40,9 @@
 #include "game/sce/libscf.h"
 #include "common/util/Assert.h"
 #include "game/discord.h"
+
+#include "svnrev.h"
+
 using namespace ee;
 
 /*!
@@ -78,6 +81,14 @@ void kmachine_init_globals() {
  * Modified to use std::string, and removed call to fflush.
  */
 void InitParms(int argc, const char* const* argv) {
+  // Modified default settings:
+  if (argc == 1) {
+    DiskBoot = 1;
+    isodrv = fakeiso;
+    modsrc = 0;
+    reboot = 0;
+  }
+
   for (int i = 1; i < argc; i++) {
     std::string arg = argv[i];
     // DVD Settings
@@ -884,6 +895,7 @@ void InitMachine_PCPort() {
   // TODO - we will eventually need a better way to know what game we are playing
   auto settings_path = file_util::get_user_settings_dir();
   intern_from_c("*pc-settings-folder*")->value = make_string_from_c(settings_path.string().c_str());
+  intern_from_c("*pc-settings-built-sha*")->value = make_string_from_c(GIT_SHORT_SHA);
 }
 
 void vif_interrupt_callback() {

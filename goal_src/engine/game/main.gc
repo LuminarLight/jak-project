@@ -147,7 +147,7 @@
     (('game)
      ;; allow pausable/menu to run.
      (logclear! (-> *setting-control* default process-mask) (process-mask pause menu))
-     ;; (sound-group-continue (the-as uint 255)) TODO (we need to flush sound commands)
+     (sound-group-continue (the-as uint 255))
      (hide-progress-screen)
      )
     )
@@ -664,6 +664,9 @@
       (add-ee-profile-frame 'draw :r #x40 :b #x40)
       (*draw-hook*)
       (add-ee-profile-frame 'draw :g #x80)
+
+      (#when PC_PORT
+        (draw-build-revision))
 
       (*menu-hook*)
       (add-ee-profile-frame 'draw :g #x40)
