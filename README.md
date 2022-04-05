@@ -12,6 +12,8 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 - Defined _yosemite_ level properly.
 - Did some minor changes to actor birthing(?) to make Yosemite not crash the game. Now instead of crashing, the game is able to birth all actors of ONE level, then for next level it will crash. Since you start in Yosemite and you want to stay there, this should not matter, but of course this is something that should be resolved in the future.
 - Added _yosemite-start_ checkpoint, though it is a bit broken right now.
+- Removed the blackout from the graphics side. When game wants blackout, it just won't happen. This is a temporary thing.
+- Occlusion Cull is now disabled by default.
 
 ### Plans for future
 - Fix the broken actors (racer, water-vol) somehow.
