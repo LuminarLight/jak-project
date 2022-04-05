@@ -1,6 +1,6 @@
 # Yosemite Branch
 
-The aim of this modification of OpenGOAL is to re-integrate the cut Yosemite level into the game and finish it.
+The aim of this modification of OpenGOAL is to re-integrate the cut Yosemite level into the game and finish it. More info about the level: https://jadtech.miraheze.org/wiki/Research:Yosemite
 
 ### Usage
 
