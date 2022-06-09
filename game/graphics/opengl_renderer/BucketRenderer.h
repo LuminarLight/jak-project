@@ -35,7 +35,7 @@ struct SharedRenderState {
   u32 offset_of_s7;
 
   bool use_sky_cpu = true;
-  bool use_occlusion_culling = true;
+  bool use_occlusion_culling = false;
   bool enable_merc_xgkick = true;
   bool use_direct2 = true;
   math::Vector<u8, 4> fog_color;
