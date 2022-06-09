@@ -26,6 +26,7 @@
 #include "decompiler/Function/BasicBlocks.h"
 #include "common/log/log.h"
 #include "common/util/json_util.h"
+#include "common/util/crc32.h"
 
 namespace decompiler {
 namespace {
@@ -78,9 +79,8 @@ std::string ObjectFileData::to_unique_name() const {
     std::string result = record.name + "-";
     auto dgo_names_sorted = dgo_names;
     std::sort(dgo_names_sorted.begin(), dgo_names_sorted.end());
-    for (auto x : dgo_names_sorted) {
-      x = strip_dgo_extension(x);
-      result += x + "-";
+    for (const auto& x : dgo_names_sorted) {
+      result += strip_dgo_extension(x) + "-";
     }
     result.pop_back();
     return result;
@@ -89,10 +89,10 @@ std::string ObjectFileData::to_unique_name() const {
   }
 }
 
-ObjectFileData& ObjectFileDB::lookup_record(const ObjectFileRecord& rec) {
-  ObjectFileData* result = nullptr;
+const ObjectFileData& ObjectFileDB::lookup_record(const ObjectFileRecord& rec) const {
+  const ObjectFileData* result = nullptr;
 
-  for (auto& x : obj_files_by_name[rec.name]) {
+  for (auto& x : obj_files_by_name.at(rec.name)) {
     if (x.record.version == rec.version) {
       ASSERT(x.record.hash == rec.hash);
       ASSERT(!result);
@@ -115,7 +115,7 @@ ObjectFileDB::ObjectFileDB(const std::vector<std::string>& _dgos,
   Timer timer;
 
   lg::info("-Loading types...");
-  dts.parse_type_defs({"decompiler", "config", "all-types.gc"});
+  dts.parse_type_defs({config.all_types_file});
 
   if (!obj_file_name_map_file.empty()) {
     lg::info("-Loading obj name map file...");
@@ -270,7 +270,7 @@ void ObjectFileDB::add_obj_from_dgo(const std::string& obj_name,
   stats.total_obj_files++;
   ASSERT(obj_size > 128);
   uint16_t version = *(const uint16_t*)(obj_data + 8);
-  auto hash = file_util::crc32(obj_data, obj_size);
+  auto hash = crc32(obj_data, obj_size);
 
   bool duplicated = false;
   // first, check to see if we already got it...
@@ -393,10 +393,13 @@ std::string ObjectFileDB::generate_obj_listing(const std::unordered_set<std::str
       result += "[\"" + pad_string(name + "\", ", 50) + "\"" +
                 pad_string(x.name_in_dgo + "\", ", 50) + std::to_string(x.obj_version) + ", " +
                 dgos + ", \"\"],\n";
-      unique_count++;
       if (all_unique_names.find(name) != all_unique_names.end() &&
           merged_objs.find(name) == merged_objs.end()) {
         lg::error("Object file {} appears multiple times with the same name.", name);
+      }
+      if (merged_objs.find(name) == merged_objs.end() ||
+          all_unique_names.find(name) == all_unique_names.end()) {
+        unique_count++;
       }
       all_unique_names.insert(name);
     }
@@ -404,7 +407,9 @@ std::string ObjectFileDB::generate_obj_listing(const std::unordered_set<std::str
   // this check is extremely important. It makes sure we don't have any repeat names. This could
   // be caused by two files with the same name, in the same DGOs, but different data.
   if (int(all_unique_names.size()) != unique_count) {
-    lg::error("Object files are not named properly, data will be lost!");
+    lg::error(
+        "Object files are not named properly, data will be lost! Got {} objs, but only {} names\n",
+        unique_count, all_unique_names.size());
   }
 
   if (unique_count > 0) {
@@ -527,7 +532,7 @@ void ObjectFileDB::find_code(const Config& config) {
     obj.linked_data.find_functions();
     obj.linked_data.disassemble_functions();
 
-    if (config.game_version == 1 || obj.to_unique_name() != "effect-control-v0") {
+    if (config.game_version == GameVersion::Jak1 || obj.to_unique_name() != "effect-control-v0") {
       obj.linked_data.process_fp_relative_links();
     } else {
       lg::warn("Skipping process_fp_relative_links in {}", obj.to_unique_name().c_str());
@@ -664,124 +669,94 @@ std::string ObjectFileDB::process_game_count_file() {
   return result;
 }
 
+namespace {
+void get_art_info(ObjectFileDB& db, ObjectFileData& obj) {
+  if (obj.obj_version == 4) {
+    const auto& words = obj.linked_data.words_by_seg.at(MAIN_SEGMENT);
+    if (words.at(0).kind() == LinkedWord::Kind::TYPE_PTR &&
+        words.at(0).symbol_name() == "art-group") {
+      // fmt::print("art-group {}:\n", obj.to_unique_name());
+      auto name = obj.linked_data.get_goal_string_by_label(words.at(2).label_id());
+      int length = words.at(3).data;
+      // fmt::print("  length: {}\n", length);
+      std::unordered_map<int, std::string> art_group_elts;
+      for (int i = 0; i < length; ++i) {
+        const auto& word = words.at(8 + i);
+        if (word.kind() == LinkedWord::Kind::SYM_PTR && word.symbol_name() == "#f") {
+          continue;
+        }
+        const auto& label = obj.linked_data.labels.at(word.label_id());
+        auto elt_name =
+            obj.linked_data.get_goal_string_by_label(words.at(label.offset / 4 + 1).label_id());
+        std::string elt_type = words.at(label.offset / 4 - 1).symbol_name();
+        std::string unique_name = elt_name;
+        if (elt_type == "art-joint-geo") {
+          // the skeleton!
+          unique_name += "-jg";
+        } else if (elt_type == "merc-ctrl" || elt_type == "shadow-geo") {
+          // (maybe mesh-geo as well but that doesnt exist)
+          // the skin!
+          unique_name += "-mg";
+        } else if (elt_type == "art-joint-anim") {
+          // the animations!
+          unique_name += "-ja";
+        } else {
+          // the something idk!
+          throw std::runtime_error(
+              fmt::format("unknown art elt type {} in {}", elt_type, obj.to_unique_name()));
+        }
+        art_group_elts[i] = unique_name;
+        // fmt::print("  {}: {} ({}) -> {}\n", i, elt_name, elt_type, unique_name);
+      }
+      db.dts.art_group_info[obj.to_unique_name()] = art_group_elts;
+    }
+  }
+}
+}  // namespace
+
 /*!
- * This is the main decompiler routine which runs after we've identified functions.
+ * Get information from art groups.
  */
-void ObjectFileDB::analyze_functions_ir1(const Config& config) {
-  lg::info("- Analyzing Functions...");
+void ObjectFileDB::extract_art_info() {
+  lg::info("Processing art groups...");
   Timer timer;
 
-  int total_functions = 0;
-
-  // Step 1 - analyze the "top level" or "login" code for each object file.
-  // this will give us type definitions, method definitions, and function definitions...
-  lg::info("  - Processing top levels...");
-
-  timer.start();
-  for_each_obj([&](ObjectFileData& data) {
-    if (data.linked_data.segments == 3) {
-      // the top level segment should have a single function
-      ASSERT(data.linked_data.functions_by_seg.at(2).size() == 1);
-
-      auto& func = data.linked_data.functions_by_seg.at(2).front();
-      ASSERT(func.guessed_name.empty());
-      func.guessed_name.set_as_top_level(data.to_unique_name());
-      func.find_global_function_defs(data.linked_data, dts);
-      func.find_type_defs(data.linked_data, dts);
-      func.find_method_defs(data.linked_data, dts);
+  for_each_obj([&](ObjectFileData& obj) {
+    try {
+      get_art_info(*this, obj);
+    } catch (std::runtime_error& e) {
+      lg::warn("Error when extracting art group info: {}", e.what());
     }
   });
 
-  // check for function uniqueness.
-  std::unordered_set<std::string> unique_names;
-  std::unordered_map<std::string, std::unordered_set<std::string>> duplicated_functions;
+  lg::info("Processed art groups: in {:.2f} ms\n", timer.getMs());
+}
 
-  int uid = 1;
-  for_each_obj([&](ObjectFileData& data) {
-    int func_in_obj = 0;
-    for (int segment_id = 0; segment_id < int(data.linked_data.segments); segment_id++) {
-      for (auto& func : data.linked_data.functions_by_seg.at(segment_id)) {
-        func.guessed_name.unique_id = uid++;
-        func.guessed_name.id_in_object = func_in_obj++;
-        func.guessed_name.object_name = data.to_unique_name();
-        auto name = func.name();
+/*!
+ * Write out the art group information.
+ */
+void ObjectFileDB::dump_art_info(const std::string& output_dir) {
+  lg::info("Writing art group info...");
+  Timer timer;
 
-        if (unique_names.find(name) != unique_names.end()) {
-          duplicated_functions[name].insert(data.to_unique_name());
-        }
-
-        unique_names.insert(name);
-
-        if (config.hacks.asm_functions_by_name.find(name) !=
-            config.hacks.asm_functions_by_name.end()) {
-          func.warnings.info("Flagged as asm by config");
-          func.suspected_asm = true;
-        }
-      }
+  if (!dts.art_group_info.empty()) {
+    file_util::create_dir_if_needed(file_util::combine_path(output_dir, "import"));
+  }
+  for (const auto& [ag_name, info] : dts.art_group_info) {
+    auto ag_fname = ag_name + ".gc";
+    auto filename = file_util::get_file_path({output_dir, "import", ag_fname});
+    std::string result = ";;-*-Lisp-*-\n";
+    result += "(in-package goal)\n\n";
+    result += fmt::format(";; {} - art group OpenGOAL import file\n", ag_fname);
+    result += ";; THIS FILE IS AUTOMATICALLY GENERATED!\n\n";
+    for (const auto& [idx, elt_name] : info) {
+      result += print_art_elt_for_dump(ag_name, elt_name, idx);
     }
-  });
+    result += "\n";
+    file_util::write_text_file(filename, result);
+  }
 
-  for_each_function([&](Function& func, int segment_id, ObjectFileData& data) {
-    (void)segment_id;
-    auto name = func.name();
-
-    if (duplicated_functions.find(name) != duplicated_functions.end()) {
-      duplicated_functions[name].insert(data.to_unique_name());
-      func.warnings.info("Exists in multiple non-identical object files");
-    }
-  });
-
-  int total_trivial_cfg_functions = 0;
-  int total_named_functions = 0;
-
-  int asm_funcs = 0;
-
-  std::map<int, std::vector<std::string>> unresolved_by_length;
-
-  timer.start();
-  int total_basic_blocks = 0;
-
-  // Main Pass over each function...
-  for_each_function_def_order([&](Function& func, int segment_id, ObjectFileData& data) {
-    total_functions++;
-
-    // first, find basic blocks.
-    auto blocks = find_blocks_in_function(data.linked_data, segment_id, func);
-    total_basic_blocks += blocks.size();
-    func.basic_blocks = blocks;
-
-    // analyze the proluge
-    if (!func.suspected_asm) {
-      // first, find the prologue/epilogue
-      func.analyze_prologue(data.linked_data);
-    }
-
-    if (!func.suspected_asm) {
-      // run analysis
-
-      // build a control flow graph, just looking at branch instructions.
-      func.cfg = build_cfg(data.linked_data, segment_id, func, {}, {});
-
-      // convert individual basic blocks to sequences of IR Basic Ops
-      for (auto& block : func.basic_blocks) {
-        if (block.end_word > block.start_word) {
-          auto label_id =
-              data.linked_data.get_label_at(segment_id, (func.start_word + block.start_word) * 4);
-          if (label_id != -1) {
-            block.label_name = data.linked_data.get_label_name(label_id);
-          }
-        }
-      }
-    } else {
-      asm_funcs++;
-    }
-  });
-
-  lg::info("Found {} functions ({} with no control flow)", total_functions,
-           total_trivial_cfg_functions);
-  lg::info("Named {}/{} functions ({:.3f}%)", total_named_functions, total_functions,
-           100.f * float(total_named_functions) / float(total_functions));
-  lg::info("Excluding {} asm functions", asm_funcs);
+  lg::info("Written art group info: in {:.2f} ms\n", timer.getMs());
 }
 
 void ObjectFileDB::dump_raw_objects(const std::string& output_dir) {
@@ -792,5 +767,11 @@ void ObjectFileDB::dump_raw_objects(const std::string& output_dir) {
     }
     file_util::write_binary_file(dest, data.data.data(), data.data.size());
   });
+}
+
+std::string print_art_elt_for_dump(const std::string& group_name,
+                                   const std::string& name,
+                                   int idx) {
+  return fmt::format("(def-art-elt {} {} {})\n", group_name, name, idx);
 }
 }  // namespace decompiler

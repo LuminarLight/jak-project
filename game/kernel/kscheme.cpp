@@ -25,6 +25,8 @@
 #include "game/mips2c/mips2c_table.h"
 #include "common/util/Assert.h"
 
+using namespace jak1_symbols;
+
 //! Controls link mode when EnableMethodSet = 0, MasterDebug = 1, DiskBoot = 0. Will enable a
 //! warning message if EnableMethodSet = 1
 u32 FastLink;
@@ -86,10 +88,7 @@ u32 crc32(const u8* data, s32 size) {
     crc = crc_table[crc >> 24] ^ ((crc << 8) | *data);
   }
 
-  if ((~crc) == 0) {
-    // if this happens, I think the hash table implementation breaks.
-    ASSERT(false);
-  }
+  ASSERT(~crc);
   return ~crc;
 }
 
@@ -1213,8 +1212,7 @@ u64 call_method_of_type_arg2(u32 arg, Ptr<Type> type, u32 method_id, u32 a1, u32
               (*type_tag).offset);
     }
   }
-  printf("[ERROR] call_method_of_type_arg2 failed!\n");
-  ASSERT(false);
+  ASSERT_MSG(false, "[ERROR] call_method_of_type_arg2 failed!");
   return arg;
 }
 

@@ -24,6 +24,8 @@
 #include "third-party/lzokay/lzokay.hpp"
 
 #ifdef _WIN32
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #else
 #include <unistd.h>
@@ -106,8 +108,15 @@ std::optional<std::filesystem::path> try_get_data_dir() {
   }
 }
 
-bool setup_project_path() {
+bool setup_project_path(std::optional<std::filesystem::path> project_path_override) {
   if (gFilePathInfo.initialized) {
+    return true;
+  }
+
+  if (project_path_override) {
+    gFilePathInfo.path_to_data = *project_path_override;
+    gFilePathInfo.initialized = true;
+    fmt::print("Using explicitly set project path: {}\n", project_path_override->string());
     return true;
   }
 
@@ -270,32 +279,6 @@ std::string base_name(const std::string& filename) {
   return filename.substr(pos);
 }
 
-static bool sInitCrc = false;
-static uint32_t crc_table[0x100];
-
-void init_crc() {
-  for (uint32_t i = 0; i < 0x100; i++) {
-    uint32_t n = i << 24u;
-    for (uint32_t j = 0; j < 8; j++)
-      n = n & 0x80000000 ? (n << 1u) ^ 0x04c11db7u : (n << 1u);
-    crc_table[i] = n;
-  }
-  sInitCrc = true;
-}
-
-uint32_t crc32(const uint8_t* data, size_t size) {
-  ASSERT(sInitCrc);
-  uint32_t crc = 0;
-  for (size_t i = size; i != 0; i--, data++) {
-    crc = crc_table[crc >> 24u] ^ ((crc << 8u) | *data);
-  }
-  return ~crc;
-}
-
-uint32_t crc32(const std::vector<uint8_t>& data) {
-  return crc32(data.data(), data.size());
-}
-
 void ISONameFromAnimationName(char* dst, const char* src) {
   // The Animation Name is a bunch of words separated by dashes
 
@@ -425,8 +408,7 @@ void MakeISOName(char* dst, const char* src) {
 
 void assert_file_exists(const char* path, const char* error_message) {
   if (!std::filesystem::exists(path)) {
-    fprintf(stderr, "File %s was not found: %s\n", path, error_message);
-    ASSERT(false);
+    ASSERT_MSG(false, fmt::format("File {} was not found: {}", path, error_message));
   }
 }
 
