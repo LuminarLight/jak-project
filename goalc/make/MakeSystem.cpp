@@ -63,8 +63,9 @@ MakeSystem::MakeSystem() {
   add_tool<TpageDirTool>();
   add_tool<CopyTool>();
   add_tool<GameCntTool>();
-  add_tool<TextTool>();
   add_tool<GroupTool>();
+  add_tool<TextTool>();
+  add_tool<SubtitleTool>();
 }
 
 /*!
@@ -357,11 +358,7 @@ bool MakeSystem::make(const std::string& target, bool force, bool verbose) {
         print_input(rule->input, '\n');
       } else {
         fmt::print("[{:3d}%] [{:8s}] {:.3f} ", percent, tool->name(), step_timer.getSeconds());
-        if (tool->name() == "goalc") {
-          print_input(rule->input, '\r');
-        } else {
-          print_input(rule->input, '\n');
-        }
+        print_input(rule->input, '\n');
       }
     }
   }

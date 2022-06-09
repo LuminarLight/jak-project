@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cstdio>
 #include <common/versions.h>
+#include "common/log/log.h"
 #include "klink.h"
 #include "fileio.h"
 #include "kscheme.h"
@@ -18,6 +19,9 @@
 #include "common/goal_constants.h"
 #include "game/mips2c/mips2c_table.h"
 #include "common/util/Assert.h"
+#include "third-party/fmt/core.h"
+
+using namespace jak1_symbols;
 
 namespace {
 // turn on printf's for debugging linking issues.
@@ -143,8 +147,7 @@ void link_control::begin(Ptr<uint8_t> object_file,
         }
       }
     } else {
-      printf("UNHANDLED OBJECT FILE VERSION\n");
-      ASSERT(false);
+      ASSERT_MSG(false, "UNHANDLED OBJECT FILE VERSION");
     }
 
     if ((m_flags & LINK_FLAG_FORCE_DEBUG) && MasterDebug && !DiskBoot) {
@@ -254,8 +257,7 @@ uint32_t link_control::work() {
     ASSERT(!m_opengoal);
     rv = work_v2();
   } else {
-    printf("UNHANDLED OBJECT FILE VERSION %d IN WORK!\n", m_version);
-    ASSERT(false);
+    ASSERT_MSG(false, fmt::format("UNHANDLED OBJECT FILE VERSION {} IN WORK!", m_version));
     return 0;
   }
 
@@ -502,8 +504,7 @@ uint32_t link_control::work_v3() {
               lp = lp + ptr_link_v3(lp, ofh, m_segment_process);
               break;
             default:
-              printf("unknown link table thing %d\n", *lp);
-              ASSERT(false);
+              ASSERT_MSG(false, fmt::format("unknown link table thing {}", *lp));
               break;
           }
         }
@@ -780,6 +781,7 @@ void link_control::finish(bool jump_from_c_to_goal) {
   *EnableMethodSet = *EnableMethodSet + m_keep_debug;
 
   ObjectFileHeader* ofh = m_link_block_ptr.cast<ObjectFileHeader>().c();
+  lg::info("link finish: {}", m_object_name);
   if (ofh->object_file_version == 3) {
     // todo check function type of entry
 

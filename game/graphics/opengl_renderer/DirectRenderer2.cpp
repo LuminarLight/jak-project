@@ -235,8 +235,7 @@ void DirectRenderer2::setup_opengl_for_draw_mode(const Draw& draw,
       case DrawMode::AlphaTest::NEVER:
         break;
       default:
-        fmt::print("unknown alpha test: {}\n", (int)draw.mode.get_alpha_test());
-        ASSERT(false);
+        ASSERT_MSG(false, fmt::format("unknown alpha test: {}", (int)draw.mode.get_alpha_test()));
     }
   }
 
@@ -326,8 +325,9 @@ void DirectRenderer2::setup_opengl_for_draw_mode(const Draw& draw,
     render_state->shaders[ShaderId::DIRECT2].activate();
     glUniform1f(m_ogl.alpha_reject, alpha_reject);
     glUniform1f(m_ogl.color_mult, color_mult);
-    glUniform4f(m_ogl.fog_color, render_state->fog_color[0], render_state->fog_color[1],
-                render_state->fog_color[2], render_state->fog_intensity);
+    glUniform4f(m_ogl.fog_color, render_state->fog_color[0] / 255.f,
+                render_state->fog_color[1] / 255.f, render_state->fog_color[2] / 255.f,
+                render_state->fog_intensity / 255);
   }
 }
 
@@ -540,8 +540,7 @@ void DirectRenderer2::handle_ad(const u8* data) {
     case GsRegisterAddress::TEXFLUSH:
       break;
     default:
-      fmt::print("Address {} is not supported\n", register_address_name(addr));
-      ASSERT(false);
+      ASSERT_MSG(false, fmt::format("Address {} is not supported", register_address_name(addr)));
   }
 }
 

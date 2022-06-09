@@ -7,6 +7,7 @@
 #include <optional>
 #include "decompiler/Disasm/Register.h"
 #include "decompiler/data/game_text.h"
+#include "common/versions.h"
 
 namespace decompiler {
 struct RegisterTypeCast {
@@ -82,7 +83,7 @@ struct DecompileHacks {
 };
 
 struct Config {
-  int game_version = -1;
+  GameVersion game_version = GameVersion::Jak1;
   std::vector<std::string> dgo_names;
   std::vector<std::string> object_file_names;
   std::vector<std::string> str_file_names;
@@ -91,6 +92,7 @@ struct Config {
   std::vector<std::string> streamed_audio_file_names;
 
   std::string obj_file_name_map_file;
+  std::string all_types_file;
 
   bool disassemble_code = false;
   bool decompile_code = false;
@@ -99,7 +101,10 @@ struct Config {
   bool process_tpages = false;
   bool process_game_text = false;
   bool process_game_count = false;
+  bool process_art_groups = false;
   bool rip_levels = false;
+  bool extract_collision = false;
+  bool find_functions = false;
 
   bool write_hex_near_instructions = false;
   bool hexdump_code = false;
@@ -130,15 +135,17 @@ struct Config {
   std::unordered_map<std::string, std::vector<StackStructureHint>>
       stack_structure_hints_by_function;
 
-  std::unordered_map<std::string, std::string> new_strings_same_across_langs;
-  std::unordered_map<std::string, std::vector<std::string>> new_strings_different_across_langs;
-
   std::unordered_map<std::string, int> bad_format_strings;
 
   std::vector<std::string> levels_to_extract;
   bool levels_extract;
 
   DecompileHacks hacks;
+
+  std::unordered_map<std::string, std::string> art_groups_by_file;
+  std::unordered_map<std::string, std::string> art_groups_by_function;
+
+  std::unordered_map<std::string, std::vector<std::string>> import_deps_by_file;
 };
 
 Config read_config_file(const std::string& path_to_config_file,

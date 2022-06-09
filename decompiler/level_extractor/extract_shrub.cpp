@@ -1,7 +1,7 @@
 #include <array>
 
 #include "extract_shrub.h"
-
+#include "decompiler/level_extractor/extract_common.h"
 #include "decompiler/ObjectFile/LinkedObjectFile.h"
 
 #include "common/util/FileUtil.h"
@@ -129,8 +129,7 @@ u32 remap_texture(u32 original, const std::vector<level_tools::TextureRemap>& ma
   auto masked = original & 0xffffff00;
   for (auto& t : map) {
     if (t.original_texid == masked) {
-      fmt::print("OKAY! remapped!\n");
-      ASSERT(false);
+      ASSERT_MSG(false, "OKAY! remapped!");
       return t.new_texid | 20;
     }
   }
@@ -396,49 +395,6 @@ std::string dump_full_to_obj(const std::vector<ShrubProtoInfo>& protos) {
   return result;
 }
 
-u32 clean_up_vertex_indices(std::vector<u32>& idx) {
-  std::vector<u32> fixed;
-  u32 num_tris = 0;
-
-  bool looking_for_start = true;
-  size_t i_of_start;
-  for (size_t i = 0; i < idx.size(); i++) {
-    if (looking_for_start) {
-      if (idx[i] != UINT32_MAX) {
-        looking_for_start = false;
-        i_of_start = i;
-      }
-    } else {
-      if (idx[i] == UINT32_MAX) {
-        looking_for_start = true;
-        size_t num_verts = i - i_of_start;
-        if (num_verts >= 3) {
-          if (!fixed.empty()) {
-            fixed.push_back(UINT32_MAX);
-          }
-          fixed.insert(fixed.end(), idx.begin() + i_of_start, idx.begin() + i);
-          num_tris += (num_verts - 2);
-        }
-      }
-    }
-  }
-
-  if (!looking_for_start) {
-    size_t num_verts = idx.size() - i_of_start;
-    if (num_verts >= 3) {
-      if (!fixed.empty()) {
-        fixed.push_back(UINT32_MAX);
-      }
-      fixed.insert(fixed.end(), idx.begin() + i_of_start, idx.begin() + idx.size());
-      num_tris += (num_verts - 2);
-    }
-  }
-
-  idx = std::move(fixed);
-
-  return num_tris;
-}
-
 void make_draws(tfrag3::Level& lev,
                 tfrag3::ShrubTree& tree_out,
                 const std::vector<ShrubProtoInfo>& protos,
@@ -502,14 +458,13 @@ void make_draws(tfrag3::Level& lev,
                 // we're missing a texture, just use the first one.
                 tex_it = tdb.textures.begin();
               } else {
-                fmt::print(
-                    "texture {} wasn't found. make sure it is loaded somehow. You may need to "
-                    "include "
-                    "ART.DGO or GAME.DGO in addition to the level DGOs for shared textures.\n",
-                    combo_tex);
-                fmt::print("tpage is {}\n", combo_tex >> 16);
-                fmt::print("id is {} (0x{:x})\n", combo_tex & 0xffff, combo_tex & 0xffff);
-                ASSERT(false);
+                ASSERT_MSG(
+                    false,
+                    fmt::format(
+                        "texture {} wasn't found. make sure it is loaded somehow. You may need to "
+                        "include ART.DGO or GAME.DGO in addition to the level DGOs for shared "
+                        "textures. tpage is {} id is {} (0x{:x})",
+                        combo_tex, combo_tex >> 16, combo_tex & 0xffff, combo_tex & 0xffff));
               }
             }
             // add a new texture to the level data

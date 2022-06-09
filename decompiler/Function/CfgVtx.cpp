@@ -1307,8 +1307,7 @@ bool ControlFlowGraph::clean_up_asm_branches() {
         // build new sequence
         replaced = true;
         if (!b0->succ_branch) {
-          fmt::print("asm missing branch in block {}\n", b0->to_string());
-          ASSERT(false);
+          ASSERT_MSG(false, fmt::format("asm missing branch in block {}", b0->to_string()));
         }
         m_blocks.at(b0->succ_branch->get_first_block_id())->needs_label = true;
 
@@ -2613,7 +2612,7 @@ std::shared_ptr<ControlFlowGraph> build_cfg(
     Function& func,
     const CondWithElseLengthHack& cond_with_else_hack,
     const std::unordered_set<int>& blocks_ending_in_asm_br) {
-  //  fmt::print("START {}\n", func.guessed_name.to_string());
+  // fmt::print("START {}\n", func.guessed_name.to_string());
   auto cfg = std::make_shared<ControlFlowGraph>();
 
   const auto& blocks = cfg->create_blocks(func.basic_blocks.size());
