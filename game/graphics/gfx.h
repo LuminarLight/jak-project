@@ -5,12 +5,14 @@
  * Graphics component for the runtime. Abstraction layer for the main graphics routines.
  */
 
+#include <array>
 #include <functional>
 #include <memory>
-#include <array>
 
 #include "common/common_types.h"
-#include "game/kernel/kboot.h"
+#include "common/versions.h"
+
+#include "game/kernel/common/kboot.h"
 #include "game/system/newpad.h"
 
 // forward declarations
@@ -19,20 +21,18 @@ class GfxDisplay;
 
 // enum for rendering pipeline
 enum class GfxPipeline { Invalid = 0, OpenGL };
+enum GfxDisplayMode { Windowed = 0, Fullscreen = 1, Borderless = 2 };
 
 // module for the different rendering pipelines
 struct GfxRendererModule {
   std::function<int(GfxSettings&)> init;
-  std::function<std::shared_ptr<GfxDisplay>(int w, int h, const char* title, GfxSettings& settings)>
-      make_main_display;
-  std::function<void(GfxDisplay*)> kill_display;
-  std::function<void(GfxDisplay*)> render_display;
-  std::function<void(GfxDisplay*, int*, int*)> display_position;
-  std::function<void(GfxDisplay*, int*, int*)> display_size;
-  std::function<void(GfxDisplay*, int, int)> display_set_size;
-  std::function<void(GfxDisplay*, float*, float*)> display_scale;
-  std::function<void(GfxDisplay*, int, int)> set_fullscreen;
-  std::function<void(GfxDisplay*, int, int, s32*, s32*, s32*)> screen_size;
+  std::function<std::shared_ptr<GfxDisplay>(int width,
+                                            int height,
+                                            const char* title,
+                                            GfxSettings& settings,
+                                            GameVersion version,
+                                            bool is_main)>
+      make_display;
   std::function<void()> exit;
   std::function<u32()> vsync;
   std::function<u32()> sync_path;
@@ -47,6 +47,7 @@ struct GfxRendererModule {
 };
 
 // store settings related to the gfx systems
+// TODO merge with globalsettings
 struct GfxSettings {
   // current version of the settings. this should be set up so that newer versions are always higher
   // than older versions
@@ -72,8 +73,15 @@ static constexpr int PAT_MAT_COUNT = 23;
 struct GfxGlobalSettings {
   // note: this is actually the size of the display that ISN'T letterboxed
   // the excess space is what will be letterboxed away.
-  int lbox_w;
-  int lbox_h;
+  int lbox_w = 640;
+  int lbox_h = 480;
+
+  // actual game resolution
+  int game_res_w = 640;
+  int game_res_h = 480;
+
+  // multi-sampled anti-aliasing sample count. 1 = disabled.
+  int msaa_samples = 4;
 
   // current renderer
   const GfxRendererModule* renderer;
@@ -85,6 +93,17 @@ struct GfxGlobalSettings {
   // collision renderer settings
   bool collision_enable = false;
   bool collision_wireframe = true;
+
+  // vsync enable
+  bool vsync = true;
+  bool old_vsync = false;
+  // target frame rate
+  float target_fps = 60;
+  // use custom frame limiter
+  bool framelimiter = true;
+
+  bool experimental_accurate_lag = false;
+  bool sleep_in_frame_limiter = true;
 
   // matching enum in kernel-defs.gc !!
   enum CollisionRendererMode { None, Mode, Event, Material, Skip } collision_mode = Mode;
@@ -98,14 +117,10 @@ namespace Gfx {
 
 extern GfxGlobalSettings g_global_settings;
 extern GfxSettings g_settings;
-// extern const std::vector<const GfxRendererModule*> renderers;
 
-const GfxRendererModule* GetRenderer(GfxPipeline pipeline);
 const GfxRendererModule* GetCurrentRenderer();
 
-enum DisplayMode { Windowed = 0, Fullscreen = 1, Borderless = 2 };
-
-u32 Init();
+u32 Init(GameVersion version);
 void Loop(std::function<bool()> f);
 u32 Exit();
 
@@ -120,10 +135,18 @@ u64 get_window_width();
 u64 get_window_height();
 void set_window_size(u64 w, u64 h);
 void get_window_scale(float* x, float* y);
-int get_fullscreen();
-void get_screen_size(s64 vmode_idx, s32* w, s32* h, s32* c);
+GfxDisplayMode get_fullscreen();
+int get_screen_vmode_count();
+int get_screen_rate(s64 vmode_idx);
+int get_monitor_count();
+void get_screen_size(s64 vmode_idx, s32* w, s32* h);
+void set_frame_rate(int rate);
+void set_vsync(bool vsync);
 void set_letterbox(int w, int h);
-void set_fullscreen(DisplayMode mode, int screen);
+void set_fullscreen(GfxDisplayMode mode, int screen);
+void set_window_lock(bool lock);
+void set_game_resolution(int w, int h);
+void set_msaa(int samples);
 void input_mode_set(u32 enable);
 void input_mode_save();
 s64 get_mapped_button(s64 pad, s64 button);

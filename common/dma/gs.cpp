@@ -1,7 +1,8 @@
 #include "gs.h"
 
-#include "third-party/fmt/core.h"
 #include "common/util/Assert.h"
+
+#include "third-party/fmt/core.h"
 
 std::string reg_descriptor_name(GifTag::RegisterDescriptor reg) {
   switch (reg) {
@@ -356,6 +357,14 @@ std::string GsTex0::print() const {
 
 std::string GsPrim::print() const {
   return fmt::format("0x{:x}, kind {}\n", data, kind());
+}
+
+std::string GsFrame::print() const {
+  return fmt::format("fbp: {} fbw: {} psm: {} fbmsk: {:x}\n", fbp(), fbw(), psm(), fbmsk());
+}
+
+std::string GsXYOffset::print() const {
+  return fmt::format("ofx: {} ofy: {}\n", ofx(), ofy());
 }
 
 std::string DrawMode::to_string() const {

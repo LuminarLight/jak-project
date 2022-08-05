@@ -1,7 +1,10 @@
-#include <cstring>
 #include "iop.h"
-#include "game/system/iop_thread.h"
+
+#include <cstring>
+
 #include "common/util/Assert.h"
+
+#include "game/system/iop_thread.h"
 
 namespace iop {
 /*!
@@ -83,7 +86,14 @@ void* AllocSysMemory(int type, unsigned long size, void* addr) {
  * Create a new thread
  */
 s32 CreateThread(ThreadParam* param) {
-  return iop->kernel.CreateThread(param->name, (u32(*)())param->entry);
+  return iop->kernel.CreateThread(param->name, (void (*)())param->entry, param->initPriority);
+}
+
+/*!
+ * Exit current thread
+ */
+s32 ExitThread() {
+  return iop->kernel.ExitThread();
 }
 
 /*!
@@ -155,8 +165,7 @@ int sceCdMmode(int media) {
 }
 
 void DelayThread(u32 usec) {
-  iop->kernel.SuspendThread();
-  (void)usec;
+  iop->kernel.DelayThread(usec);
 }
 
 int sceCdBreak() {

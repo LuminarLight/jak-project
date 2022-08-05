@@ -1,7 +1,10 @@
 #include "sndshim.h"
-#include "989snd/player.h"
-#include "sdshim.h"
+
 #include <cstdio>
+
+#include "sdshim.h"
+
+#include "989snd/player.h"
 
 std::unique_ptr<snd::player> player;
 
@@ -175,7 +178,7 @@ void snd_AutoPitchBend(s32, s32, s32, s32) {
 s32 snd_BankLoadEx(const char* filename, s32 offset, s32, s32) {
   // printf("snd_BankLoadEx\n");
   if (player) {
-    std::filesystem::path path = filename;
+    fs::path path = filename;
     return player->load_bank(path, offset);
   } else {
     return 0;

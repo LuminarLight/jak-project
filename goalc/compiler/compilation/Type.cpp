@@ -1,10 +1,12 @@
-#include "goalc/compiler/Compiler.h"
-#include "third-party/fmt/core.h"
 #include "common/type_system/defenum.h"
 #include "common/type_system/deftype.h"
-#include "goalc/emitter/CallingConvention.h"
-#include "common/util/math_util.h"
 #include "common/type_system/state.h"
+#include "common/util/math_util.h"
+
+#include "goalc/compiler/Compiler.h"
+#include "goalc/emitter/CallingConvention.h"
+
+#include "third-party/fmt/core.h"
 
 namespace {
 
@@ -160,7 +162,8 @@ void Compiler::generate_field_description(const goos::Object& form,
     format_args.push_back(get_field_of_structure(type, reg, f.name(), env)->to_gpr(form, env));
   } else if (m_ts.tc(m_ts.make_typespec("basic"), f.type()) ||
              m_ts.tc(m_ts.make_typespec("binteger"), f.type()) ||
-             m_ts.tc(m_ts.make_typespec("pair"), f.type())) {
+             m_ts.tc(m_ts.make_typespec("pair"), f.type()) ||
+             m_ts.tc(m_ts.make_typespec("symbol"), f.type())) {
     // basic, binteger, pair
     str_template += fmt::format("{}{}: ~A~%", tabs, f.name());
     format_args.push_back(get_field_of_structure(type, reg, f.name(), env)->to_gpr(form, env));

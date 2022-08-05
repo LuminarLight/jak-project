@@ -1,27 +1,31 @@
 #include "OpenGLRenderer.h"
 
 #include "common/log/log.h"
-#include "game/graphics/pipelines/opengl.h"
-#include "game/graphics/opengl_renderer/DirectRenderer.h"
-#include "game/graphics/opengl_renderer/SpriteRenderer.h"
-#include "game/graphics/opengl_renderer/TextureUploadHandler.h"
-#include "third-party/imgui/imgui.h"
 #include "common/util/FileUtil.h"
-#include "game/graphics/opengl_renderer/SkyRenderer.h"
-#include "game/graphics/opengl_renderer/Sprite3.h"
-#include "game/graphics/opengl_renderer/background/TFragment.h"
-#include "game/graphics/opengl_renderer/background/Tie3.h"
-#include "game/graphics/opengl_renderer/background/Shrub.h"
-#include "game/graphics/opengl_renderer/MercRenderer.h"
+
+#include "game/graphics/opengl_renderer/DepthCue.h"
+#include "game/graphics/opengl_renderer/DirectRenderer.h"
 #include "game/graphics/opengl_renderer/EyeRenderer.h"
 #include "game/graphics/opengl_renderer/ShadowRenderer.h"
+#include "game/graphics/opengl_renderer/SkyRenderer.h"
+#include "game/graphics/opengl_renderer/Sprite3.h"
+#include "game/graphics/opengl_renderer/SpriteRenderer.h"
+#include "game/graphics/opengl_renderer/TextureUploadHandler.h"
+#include "game/graphics/opengl_renderer/background/Shrub.h"
+#include "game/graphics/opengl_renderer/background/TFragment.h"
+#include "game/graphics/opengl_renderer/background/Tie3.h"
 #include "game/graphics/opengl_renderer/foreground/Generic2.h"
 #include "game/graphics/opengl_renderer/foreground/Merc2.h"
 #include "game/graphics/opengl_renderer/ocean/OceanMidAndFar.h"
 #include "game/graphics/opengl_renderer/ocean/OceanNear.h"
+#include "game/graphics/pipelines/opengl.h"
+
+#include "third-party/imgui/imgui.h"
 
 // for the vif callback
-#include "game/kernel/kmachine.h"
+#include "game/kernel/common/kmachine.h"
+#include "game/runtime.h"
+
 namespace {
 std::string g_current_render;
 
@@ -69,15 +73,6 @@ OpenGLRenderer::OpenGLRenderer(std::shared_ptr<TexturePool> texture_pool,
   init_bucket_renderers();
 }
 
-void OpenGLRenderer::init_merc_renderer(const std::string& name, BucketId id) {
-  std::vector<std::unique_ptr<BucketRenderer>> merc_renderers;
-  merc_renderers.push_back(std::make_unique<MercRenderer>(name, id));
-  merc_renderers.push_back(std::make_unique<Merc2>(name, id));
-
-  m_mercs.push_back(
-      init_bucket_renderer<RenderMux>(name, BucketCategory::MERC, id, std::move(merc_renderers)));
-}
-
 /*!
  * Construct bucket renderers.  We can specify different renderers for different buckets
  */
@@ -116,7 +111,8 @@ void OpenGLRenderer::init_bucket_renderers() {
   // 9 : TIE_LEVEL0
   init_bucket_renderer<Tie3>("l0-tfrag-tie", BucketCategory::TIE, BucketId::TIE_LEVEL0, 0);
   // 10 : MERC_TFRAG_TEX_LEVEL0
-  init_merc_renderer("l0-tfrag-merc", BucketId::MERC_TFRAG_TEX_LEVEL0);
+  init_bucket_renderer<Merc2>("l0-tfrag-merc", BucketCategory::MERC,
+                              BucketId::MERC_TFRAG_TEX_LEVEL0);
   // 11 : GMERC_TFRAG_TEX_LEVEL0
   init_bucket_renderer<Generic2>("l0-tfrag-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_TFRAG_TEX_LEVEL0, 1500000, 10000, 10000, 800);
@@ -135,7 +131,8 @@ void OpenGLRenderer::init_bucket_renderers() {
   // 16 : TIE_LEVEL1
   init_bucket_renderer<Tie3>("l1-tfrag-tie", BucketCategory::TIE, BucketId::TIE_LEVEL1, 1);
   // 17 : MERC_TFRAG_TEX_LEVEL1
-  init_merc_renderer("l1-tfrag-merc", BucketId::MERC_TFRAG_TEX_LEVEL1);
+  init_bucket_renderer<Merc2>("l1-tfrag-merc", BucketCategory::MERC,
+                              BucketId::MERC_TFRAG_TEX_LEVEL1);
   // 18 : GMERC_TFRAG_TEX_LEVEL1
   init_bucket_renderer<Generic2>("l1-tfrag-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_TFRAG_TEX_LEVEL1, 1500000, 10000, 10000, 800);
@@ -202,7 +199,8 @@ void OpenGLRenderer::init_bucket_renderers() {
                                   BucketId::TFRAG_ICE_LEVEL1, ice_tfrags, false, 1);
   // 44
 
-  init_merc_renderer("common-alpha-merc", BucketId::MERC_AFTER_ALPHA);
+  init_bucket_renderer<Merc2>("common-alpha-merc", BucketCategory::MERC,
+                              BucketId::MERC_AFTER_ALPHA);
 
   init_bucket_renderer<Generic2>("common-alpha-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_ALPHA);                                  // 46
@@ -213,7 +211,8 @@ void OpenGLRenderer::init_bucket_renderers() {
   //-----------------------
   init_bucket_renderer<TextureUploadHandler>("l0-pris-tex", BucketCategory::TEX,
                                              BucketId::PRIS_TEX_LEVEL0);  // 48
-  init_merc_renderer("l0-pris-merc", BucketId::MERC_PRIS_LEVEL0);         // 49
+  init_bucket_renderer<Merc2>("l0-pris-merc", BucketCategory::MERC,
+                              BucketId::MERC_PRIS_LEVEL0);  // 49
   init_bucket_renderer<Generic2>("l0-pris-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_PRIS_LEVEL0);  // 50
 
@@ -222,7 +221,8 @@ void OpenGLRenderer::init_bucket_renderers() {
   //-----------------------
   init_bucket_renderer<TextureUploadHandler>("l1-pris-tex", BucketCategory::TEX,
                                              BucketId::PRIS_TEX_LEVEL1);  // 51
-  init_merc_renderer("l1-pris-merc", BucketId::MERC_PRIS_LEVEL1);         // 52
+  init_bucket_renderer<Merc2>("l1-pris-merc", BucketCategory::MERC,
+                              BucketId::MERC_PRIS_LEVEL1);  // 52
   init_bucket_renderer<Generic2>("l1-pris-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_PRIS_LEVEL1);  // 53
 
@@ -231,7 +231,8 @@ void OpenGLRenderer::init_bucket_renderers() {
       "common-pris-eyes", BucketCategory::OTHER, BucketId::MERC_EYES_AFTER_PRIS);  // 54
 
   // hack: set to merc2 for debugging
-  init_merc_renderer("common-pris-merc", BucketId::MERC_AFTER_PRIS);  // 55
+  init_bucket_renderer<Merc2>("common-pris-merc", BucketCategory::MERC,
+                              BucketId::MERC_AFTER_PRIS);  // 55
   init_bucket_renderer<Generic2>("common-pris-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_PRIS);  // 56
 
@@ -240,7 +241,8 @@ void OpenGLRenderer::init_bucket_renderers() {
   //-----------------------
   init_bucket_renderer<TextureUploadHandler>("l0-water-tex", BucketCategory::TEX,
                                              BucketId::WATER_TEX_LEVEL0);  // 57
-  init_merc_renderer("l0-water-merc", BucketId::MERC_WATER_LEVEL0);        // 58
+  init_bucket_renderer<Merc2>("l0-water-merc", BucketCategory::MERC,
+                              BucketId::MERC_WATER_LEVEL0);  // 58
   init_bucket_renderer<Generic2>("l0-water-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_WATER_LEVEL0);  // 59
 
@@ -249,12 +251,17 @@ void OpenGLRenderer::init_bucket_renderers() {
   //-----------------------
   init_bucket_renderer<TextureUploadHandler>("l1-water-tex", BucketCategory::TEX,
                                              BucketId::WATER_TEX_LEVEL1);  // 60
-  init_merc_renderer("l1-water-merc", BucketId::MERC_WATER_LEVEL1);        // 61
+  init_bucket_renderer<Merc2>("l1-water-merc", BucketCategory::MERC,
+                              BucketId::MERC_WATER_LEVEL1);  // 61
   init_bucket_renderer<Generic2>("l1-water-generic", BucketCategory::GENERIC,
                                  BucketId::GENERIC_WATER_LEVEL1);  // 62
 
   init_bucket_renderer<OceanNear>("ocean-near", BucketCategory::OCEAN, BucketId::OCEAN_NEAR);  // 63
-  // 64?
+
+  //-----------------------
+  // DEPTH CUE
+  //-----------------------
+  init_bucket_renderer<DepthCue>("depth-cue", BucketCategory::OTHER, BucketId::DEPTH_CUE);  // 64
 
   //-----------------------
   // COMMON texture
@@ -272,8 +279,8 @@ void OpenGLRenderer::init_bucket_renderers() {
   init_bucket_renderer<DirectRenderer>("debug", BucketCategory::OTHER, BucketId::DEBUG, 0x20000);
   init_bucket_renderer<DirectRenderer>("debug-no-zbuf", BucketCategory::OTHER,
                                        BucketId::DEBUG_NO_ZBUF, 0x8000);
-  init_bucket_renderer<DirectRenderer>("subtitle", BucketCategory::OTHER, BucketId::SUBTITLE,
-                                       0x2000);
+  // an extra custom bucket!
+  init_bucket_renderer<DirectRenderer>("subtitle", BucketCategory::OTHER, BucketId::SUBTITLE, 6000);
 
   // for now, for any unset renderers, just set them to an EmptyBucketRenderer.
   for (size_t i = 0; i < m_bucket_renderers.size(); i++) {
@@ -299,15 +306,12 @@ void OpenGLRenderer::render(DmaFollower dma, const RenderOptions& settings) {
   m_render_state.ee_main_memory = g_ee_main_mem;
   m_render_state.offset_of_s7 = offset_of_s7();
 
-  // hack to toggle all mercs, todo remove once we finish merc2
-  for (auto merc : m_mercs) {
-    merc->set_idx(m_render_state.merc2 ? 1 : 0);
-  }
-
   {
     auto prof = m_profiler.root()->make_scoped_child("frame-setup");
-    setup_frame(settings.window_width_px, settings.window_height_px, settings.lbox_width_px,
-                settings.lbox_height_px);
+    setup_frame(settings);
+    if (settings.gpu_sync) {
+      glFinish();
+    }
   }
 
   {
@@ -324,13 +328,16 @@ void OpenGLRenderer::render(DmaFollower dma, const RenderOptions& settings) {
   // render the buckets!
   {
     auto prof = m_profiler.root()->make_scoped_child("buckets");
-    dispatch_buckets(dma, prof);
+    dispatch_buckets(dma, prof, settings.gpu_sync);
   }
 
   // apply effects done with PCRTC registers
   {
     auto prof = m_profiler.root()->make_scoped_child("pcrtc");
     do_pcrtc_effects(settings.pmode_alp_register, &m_render_state, prof);
+    if (settings.gpu_sync) {
+      glFinish();
+    }
   }
 
   if (settings.draw_render_debug_window) {
@@ -338,6 +345,9 @@ void OpenGLRenderer::render(DmaFollower dma, const RenderOptions& settings) {
     draw_renderer_selection_window();
     // add a profile bar for the imgui stuff
     vif_interrupt_callback();
+    if (settings.gpu_sync) {
+      glFinish();
+    }
   }
 
   m_last_pmode_alp = settings.pmode_alp_register;
@@ -362,9 +372,24 @@ void OpenGLRenderer::render(DmaFollower dma, const RenderOptions& settings) {
     m_small_profiler.draw(m_render_state.load_status_debug, stats);
   }
 
+  if (settings.draw_subtitle_editor_window) {
+    m_subtitle_editor.draw_window();
+  }
+
   if (settings.save_screenshot) {
-    finish_screenshot(settings.screenshot_path, settings.window_width_px, settings.window_height_px,
-                      settings.lbox_width_px, settings.lbox_height_px);
+    Fbo* screenshot_src;
+
+    // can't screenshot from a multisampled buffer directly -
+    if (m_fbo_state.resources.resolve_buffer.valid) {
+      screenshot_src = &m_fbo_state.resources.resolve_buffer;
+    } else {
+      screenshot_src = m_fbo_state.render_fbo;
+    }
+    finish_screenshot(settings.screenshot_path, screenshot_src->width, screenshot_src->height, 0, 0,
+                      screenshot_src->fbo_id);
+  }
+  if (settings.gpu_sync) {
+    glFinish();
   }
 }
 
@@ -374,14 +399,12 @@ void OpenGLRenderer::render(DmaFollower dma, const RenderOptions& settings) {
 void OpenGLRenderer::draw_renderer_selection_window() {
   ImGui::Begin("Renderer Debug");
 
-  ImGui::Checkbox("Merc2", &m_render_state.merc2);
   ImGui::Checkbox("Use old single-draw", &m_render_state.no_multidraw);
   ImGui::SliderFloat("Fog Adjust", &m_render_state.fog_intensity, 0, 10);
   ImGui::Checkbox("Sky CPU", &m_render_state.use_sky_cpu);
   ImGui::Checkbox("Occlusion Cull", &m_render_state.use_occlusion_culling);
   ImGui::Checkbox("Merc XGKICK", &m_render_state.enable_merc_xgkick);
   ImGui::Checkbox("Blackout Loads", &m_enable_fast_blackout_loads);
-  ImGui::Checkbox("Direct 2", &m_render_state.use_direct2);
 
   for (size_t i = 0; i < m_bucket_renderers.size(); i++) {
     auto renderer = m_bucket_renderers[i].get();
@@ -402,25 +425,221 @@ void OpenGLRenderer::draw_renderer_selection_window() {
   ImGui::End();
 }
 
+namespace {
+Fbo make_fbo(int w, int h, int msaa, bool make_zbuf_and_stencil) {
+  Fbo result;
+  bool use_multisample = msaa > 1;
+
+  // make framebuffer object
+  glGenFramebuffers(1, &result.fbo_id);
+  glBindFramebuffer(GL_FRAMEBUFFER, result.fbo_id);
+  result.valid = true;
+
+  // make texture that will hold the colors of the framebuffer
+  GLuint tex;
+  glGenTextures(1, &tex);
+  result.tex_id = tex;
+  glActiveTexture(GL_TEXTURE0);
+  if (use_multisample) {
+    glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex);
+    glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, msaa, GL_RGBA8, w, h, GL_TRUE);
+  } else {
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+  }
+  // make depth and stencil buffers that will hold the... depth and stencil buffers
+  if (make_zbuf_and_stencil) {
+    GLuint zbuf;
+    glGenRenderbuffers(1, &zbuf);
+    result.zbuf_stencil_id = zbuf;
+    glBindRenderbuffer(GL_RENDERBUFFER, zbuf);
+    if (use_multisample) {
+      glRenderbufferStorageMultisample(GL_RENDERBUFFER, msaa, GL_DEPTH24_STENCIL8, w, h);
+    } else {
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, w, h);
+    }
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, zbuf);
+  }
+  // attach texture to framebuffer as target for colors
+
+  if (use_multisample) {
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, tex, 0);
+  } else {
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+  }
+
+  GLenum render_targets[1] = {GL_COLOR_ATTACHMENT0};
+  glDrawBuffers(1, render_targets);
+  auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+  if (status != GL_FRAMEBUFFER_COMPLETE) {
+    lg::error("Failed to setup framebuffer: {} {} {} {}\n", w, h, msaa, make_zbuf_and_stencil);
+    switch (status) {
+      case GL_FRAMEBUFFER_UNDEFINED:
+        printf("GL_FRAMEBUFFER_UNDEFINED\n");
+        break;
+      case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        printf("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT\n");
+        break;
+      case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        printf("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT\n");
+        break;
+      case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+        printf("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER\n");
+        break;
+      case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+        printf("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER\n");
+        break;
+      case GL_FRAMEBUFFER_UNSUPPORTED:
+        printf("GL_FRAMEBUFFER_UNSUPPORTED\n");
+        break;
+      case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+        printf("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE\n");
+        break;
+      case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
+        printf("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS\n");
+        break;
+    }
+    ASSERT(false);
+  }
+
+  result.multisample_count = msaa;
+  result.multisampled = use_multisample;
+  result.is_window = false;
+  result.width = w;
+  result.height = h;
+
+  return result;
+}
+}  // namespace
+
 /*!
  * Pre-render frame setup.
  */
-void OpenGLRenderer::setup_frame(int window_width_px,
-                                 int window_height_px,
-                                 int offset_x,
-                                 int offset_y) {
-  glViewport(offset_x, offset_y, window_width_px, window_height_px);
+void OpenGLRenderer::setup_frame(const RenderOptions& settings) {
+  // glfw controls the window framebuffer, so we just update the size:
+  auto& window_fb = m_fbo_state.resources.window;
+  bool window_resized = window_fb.width != settings.window_framebuffer_width ||
+                        window_fb.height != settings.window_framebuffer_height;
+  window_fb.valid = true;
+  window_fb.is_window = true;
+  window_fb.fbo_id = 0;
+  window_fb.width = settings.window_framebuffer_width;
+  window_fb.height = settings.window_framebuffer_height;
+  window_fb.multisample_count = 1;
+  window_fb.multisampled = false;
+
+  // see if the render FBO is still applicable
+  if (!m_fbo_state.render_fbo || window_resized ||
+      !m_fbo_state.render_fbo->matches(settings.game_res_w, settings.game_res_h,
+                                       settings.msaa_samples)) {
+    // doesn't match, set up a new one for these settings
+    lg::info("FBO Setup: requested {}x{}, msaa {}", settings.game_res_w, settings.game_res_h,
+             settings.msaa_samples);
+
+    // clear old framebuffers
+    m_fbo_state.resources.render_buffer.clear();
+    m_fbo_state.resources.resolve_buffer.clear();
+
+    // first, see if we can just render straight to the display framebuffer.
+    if (window_fb.matches(settings.game_res_w, settings.game_res_h, settings.msaa_samples)) {
+      // it matches - no need for extra framebuffers.
+      lg::info("FBO Setup: rendering directly to window framebuffer");
+      m_fbo_state.render_fbo = &m_fbo_state.resources.window;
+    } else {
+      lg::info("FBO Setup: window didn't match: {} {}", window_fb.width, window_fb.height);
+
+      // create a fbo to render to, with the desired settings
+      m_fbo_state.resources.render_buffer =
+          make_fbo(settings.game_res_w, settings.game_res_h, settings.msaa_samples, true);
+      m_fbo_state.render_fbo = &m_fbo_state.resources.render_buffer;
+
+      bool msaa_matches = window_fb.multisample_count == settings.msaa_samples;
+
+      if (!msaa_matches) {
+        lg::info("FBO Setup: using second temporary buffer: res: {}x{} {}x{}", window_fb.width,
+                 window_fb.height, settings.game_res_w, settings.game_res_h);
+
+        // we'll need a temporary fbo to do the msaa resolve step
+        // non-multisampled, and doesn't need z/stencil
+        m_fbo_state.resources.resolve_buffer =
+            make_fbo(settings.game_res_w, settings.game_res_h, 1, false);
+      } else {
+        lg::info("FBO Setup: not using second temporary buffer");
+      }
+    }
+  }
+
+  ASSERT_MSG(settings.game_res_w > 0 && settings.game_res_h > 0,
+             fmt::format("Bad viewport size from game_res: {}x{}\n", settings.game_res_w,
+                         settings.game_res_h));
+
+  if (!m_fbo_state.render_fbo->is_window) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, m_fbo_state.resources.window.width, m_fbo_state.resources.window.height);
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glClearDepth(0.0);
+    glDepthMask(GL_TRUE);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glDisable(GL_BLEND);
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, m_fbo_state.render_fbo->fbo_id);
   glClearColor(0.0, 0.0, 0.0, 0.0);
   glClearDepth(0.0);
+  glClearStencil(0);
   glDepthMask(GL_TRUE);
+  // Note: could rely on sky renderer to clear depth and color, but this causes problems with
+  // letterboxing
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
   glDisable(GL_BLEND);
+
+  // setup the draw region to letterbox later
+  m_render_state.draw_region_w = settings.draw_region_width;
+  m_render_state.draw_region_h = settings.draw_region_height;
+
+  // center the letterbox
+  m_render_state.draw_offset_x =
+      (settings.window_framebuffer_width - m_render_state.draw_region_w) / 2;
+  m_render_state.draw_offset_y =
+      (settings.window_framebuffer_height - m_render_state.draw_region_h) / 2;
+
+  if (settings.borderless_windows_hacks) {
+    // pretend the framebuffer is 1 pixel shorter on borderless. fullscreen issues!
+    // add one pixel of vertical letterbox on borderless to make up for extra line
+    m_render_state.draw_offset_y++;
+  }
+
+  m_render_state.render_fb = m_fbo_state.render_fbo->fbo_id;
+
+  if (m_render_state.draw_region_w <= 0 || m_render_state.draw_region_h <= 0) {
+    // trying to draw to 0 size region... opengl doesn't like this.
+    m_render_state.draw_region_w = 640;
+    m_render_state.draw_region_h = 480;
+  }
+
+  if (m_fbo_state.render_fbo->is_window) {
+    m_render_state.render_fb_x = m_render_state.draw_offset_x;
+    m_render_state.render_fb_y = m_render_state.draw_offset_y;
+    m_render_state.render_fb_w = m_render_state.draw_region_w;
+    m_render_state.render_fb_h = m_render_state.draw_region_h;
+    glViewport(m_render_state.draw_offset_x, m_render_state.draw_offset_y,
+               m_render_state.draw_region_w, m_render_state.draw_region_h);
+  } else {
+    m_render_state.render_fb_x = 0;
+    m_render_state.render_fb_y = 0;
+    m_render_state.render_fb_w = settings.game_res_w;
+    m_render_state.render_fb_h = settings.game_res_h;
+    glViewport(0, 0, settings.game_res_w, settings.game_res_h);
+  }
 }
 
 /*!
  * This function finds buckets and dispatches them to the appropriate part.
  */
-void OpenGLRenderer::dispatch_buckets(DmaFollower dma, ScopedProfilerNode& prof) {
+void OpenGLRenderer::dispatch_buckets(DmaFollower dma,
+                                      ScopedProfilerNode& prof,
+                                      bool sync_after_buckets) {
   // The first thing the DMA chain should be a call to a common default-registers chain.
   // this chain resets the state of the GS. After this is buckets
   m_category_times.fill(0);
@@ -458,6 +677,11 @@ void OpenGLRenderer::dispatch_buckets(DmaFollower dma, ScopedProfilerNode& prof)
     g_current_render = renderer->name_and_id();
     // lg::info("Render: {} start", g_current_render);
     renderer->render(dma, &m_render_state, bucket_prof);
+    if (sync_after_buckets) {
+      auto pp = scoped_prof("finish");
+      glFinish();
+    }
+
     // lg::info("Render: {} end", g_current_render);
     //  should have ended at the start of the next chain
     ASSERT(dma.current_tag_offset() == m_render_state.next_bucket);
@@ -484,10 +708,14 @@ void OpenGLRenderer::finish_screenshot(const std::string& output_name,
                                        int width,
                                        int height,
                                        int x,
-                                       int y) {
+                                       int y,
+                                       GLuint fbo) {
   std::vector<u32> buffer(width * height);
   glPixelStorei(GL_PACK_ALIGNMENT, 1);
-  glReadBuffer(GL_BACK);
+  GLint oldbuf;
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &oldbuf);
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+  glReadBuffer(GL_COLOR_ATTACHMENT0);
   glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
   // flip upside down in place
   for (int h = 0; h < height / 2; h++) {
@@ -501,16 +729,56 @@ void OpenGLRenderer::finish_screenshot(const std::string& output_name,
     px |= 0xff000000;
   }
   file_util::write_rgba_png(output_name, buffer.data(), width, height);
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, oldbuf);
 }
 
 void OpenGLRenderer::do_pcrtc_effects(float alp,
                                       SharedRenderState* render_state,
                                       ScopedProfilerNode& prof) {
+  if (m_fbo_state.render_fbo->is_window) {
+    // nothing to do!
+  } else {
+    Fbo* window_blit_src = nullptr;
+    if (m_fbo_state.resources.resolve_buffer.valid) {
+      glBindFramebuffer(GL_READ_FRAMEBUFFER, m_fbo_state.render_fbo->fbo_id);
+      glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo_state.resources.resolve_buffer.fbo_id);
+      glBlitFramebuffer(0,                                            // srcX0
+                        0,                                            // srcY0
+                        m_fbo_state.render_fbo->width,                // srcX1
+                        m_fbo_state.render_fbo->height,               // srcY1
+                        0,                                            // dstX0
+                        0,                                            // dstY0
+                        m_fbo_state.resources.resolve_buffer.width,   // dstX1
+                        m_fbo_state.resources.resolve_buffer.height,  // dstY1
+                        GL_COLOR_BUFFER_BIT,                          // mask
+                        GL_LINEAR                                     // filter
+      );
+      window_blit_src = &m_fbo_state.resources.resolve_buffer;
+    } else {
+      window_blit_src = &m_fbo_state.resources.render_buffer;
+    }
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, window_blit_src->fbo_id);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBlitFramebuffer(0,                                                          // srcX0
+                      0,                                                          // srcY0
+                      window_blit_src->width,                                     // srcX1
+                      window_blit_src->height,                                    // srcY1
+                      render_state->draw_offset_x,                                // dstX0
+                      render_state->draw_offset_y,                                // dstY0
+                      render_state->draw_offset_x + render_state->draw_region_w,  // dstX1
+                      render_state->draw_offset_y + render_state->draw_region_h,  // dstY1
+                      GL_COLOR_BUFFER_BIT,                                        // mask
+                      GL_LINEAR                                                   // filter
+    );
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  }
   if (alp < 1) {
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO);
     glBlendEquation(GL_FUNC_ADD);
+    glViewport(0, 0, m_fbo_state.resources.window.width, m_fbo_state.resources.window.height);
 
     //m_blackout_renderer.draw(Vector4f(0, 0, 0, 1.f - alp), render_state, prof);
 

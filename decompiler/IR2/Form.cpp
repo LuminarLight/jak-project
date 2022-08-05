@@ -2,13 +2,15 @@
 
 #include <algorithm>
 #include <utility>
-#include "decompiler/ObjectFile/LinkedObjectFile.h"
+
 #include "common/goos/PrettyPrinter.h"
 #include "common/type_system/TypeSystem.h"
+#include "common/util/print_float.h"
+
+#include "decompiler/ObjectFile/LinkedObjectFile.h"
 #include "decompiler/util/DecompilerTypeSystem.h"
 #include "decompiler/util/data_decompile.h"
 #include "decompiler/util/sparticle_decompile.h"
-#include "common/util/print_float.h"
 
 namespace decompiler {
 
@@ -1550,8 +1552,7 @@ void AshElement::get_modified_regs(RegSet&) const {}
 // TypeOfElement
 /////////////////////////////
 
-TypeOfElement::TypeOfElement(Form* _value, std::optional<RegisterAccess> _clobber)
-    : value(_value), clobber(_clobber) {
+TypeOfElement::TypeOfElement(Form* _value) : value(_value) {
   value->parent_element = this;
 }
 
@@ -2489,6 +2490,10 @@ void LetElement::add_def(RegisterAccess dst, Form* value) {
 
 void LetElement::make_let_star() {
   m_star = true;
+}
+
+void LetElement::clear_let_star() {
+  m_star = false;
 }
 
 goos::Object LetElement::to_form_internal(const Env& env) const {

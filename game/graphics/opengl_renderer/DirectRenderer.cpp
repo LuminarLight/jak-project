@@ -1,10 +1,13 @@
 #include "DirectRenderer.h"
+
 #include "common/dma/gs.h"
 #include "common/log/log.h"
-#include "third-party/fmt/core.h"
-#include "game/graphics/pipelines/opengl.h"
-#include "third-party/imgui/imgui.h"
 #include "common/util/Assert.h"
+
+#include "game/graphics/pipelines/opengl.h"
+
+#include "third-party/fmt/core.h"
+#include "third-party/imgui/imgui.h"
 
 DirectRenderer::DirectRenderer(const std::string& name, BucketId my_id, int batch_size)
     : BucketRenderer(name, my_id), m_prim_buffer(batch_size) {
@@ -389,9 +392,8 @@ void DirectRenderer::update_gl_blend() {
       glBlendEquation(GL_FUNC_ADD);
     } else if (state.a == GsAlpha::BlendMode::SOURCE && state.b == GsAlpha::BlendMode::SOURCE &&
                state.c == GsAlpha::BlendMode::SOURCE && state.d == GsAlpha::BlendMode::SOURCE) {
-      // this is very weird...
-      glBlendFuncSeparate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
-      glBlendEquation(GL_FUNC_ADD);
+      // trick to disable alpha blending.
+      glDisable(GL_BLEND);
     } else if (state.a == GsAlpha::BlendMode::SOURCE &&
                state.b == GsAlpha::BlendMode::ZERO_OR_FIXED &&
                state.c == GsAlpha::BlendMode::DEST && state.d == GsAlpha::BlendMode::DEST) {

@@ -3,26 +3,32 @@
 #ifndef JAK_IOP_KERNEL_H
 #define JAK_IOP_KERNEL_H
 
-#include <thread>
-#include <string>
-#include <queue>
-#include <vector>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
+
 #include "common/common_types.h"
 #include "common/util/Assert.h"
+
 #include "game/sce/iop.h"
+
+#include "third-party/libco/libco.h"
 
 class IOP_Kernel;
 namespace iop {
 struct sceSifQueueData;
 }
 
+using time_stamp = std::chrono::time_point<std::chrono::steady_clock, std::chrono::microseconds>;
+
 struct SifRpcCommand {
   bool started = true;
   bool finished = true;
-  bool shutdown_now = false;
 
   void* buff;
   int fno;
@@ -38,41 +44,46 @@ struct SifRecord {
   u32 thread_to_wake;
 };
 
-struct IopThreadRecord {
-  IopThreadRecord(std::string n, u32 (*f)(), s32 ID, IOP_Kernel* k)
-      : name(n), function(f), thID(ID), kernel(k) {
-    kernelToThreadCV = new std::condition_variable;
-    threadToKernelCV = new std::condition_variable;
-    kernelToThreadMutex = new std::mutex;
-    threadToKernelMutex = new std::mutex;
+struct IopThread {
+  enum class State {
+    Run,
+    Ready,
+    Wait,
+    WaitSuspend,
+    Suspend,
+    Dormant,
+  };
+
+  enum class Wait {
+    None,
+    Semaphore,
+    Delay,
+  };
+
+  IopThread(std::string n, void (*f)(), s32 ID, u32 priority)
+      : name(std::move(n)), function(f), priority(priority), thID(ID) {
+    thread = co_create(0x300000, functionWrapper);
   }
 
-  ~IopThreadRecord() {
-    delete kernelToThreadCV;
-    delete threadToKernelCV;
-    delete kernelToThreadMutex;
-    delete threadToKernelMutex;
-    delete thread;
-  }
+  ~IopThread() { co_delete(thread); }
 
+  static void functionWrapper();
   std::string name;
-  u32 (*function)();
-  std::thread* thread = nullptr;
-  bool wantExit = false;
-  bool started = false;
-  bool done = false;
+  void (*function)();
+  cothread_t thread;
+  State state = State::Dormant;
+  Wait waitType = Wait::None;
+  time_stamp resumeTime = {};
+  u32 priority = 0;
   s32 thID = -1;
-  IOP_Kernel* kernel;
+};
 
-  bool runThreadReady = false;
-  bool syscallReady = false;
-  std::mutex *kernelToThreadMutex, *threadToKernelMutex;
-  std::condition_variable *kernelToThreadCV, *threadToKernelCV;
-
-  void returnToKernel();
-  void waitForReturnToKernel();
-  void waitForDispatch();
-  void dispatch();
+struct Semaphore {
+  u32 option;
+  u32 attr;
+  s32 count;
+  s32 maxCount;
+  s32 initCount;
 };
 
 class IOP_Kernel {
@@ -80,34 +91,31 @@ class IOP_Kernel {
   IOP_Kernel() {
     // this ugly hack
     threads.reserve(16);
-    CreateThread("null-thread", nullptr);
+    CreateThread("null-thread", nullptr, 0);
     CreateMbx();
+    kernel_thread = co_active();
   }
 
   ~IOP_Kernel();
 
-  s32 CreateThread(std::string n, u32 (*f)());
+  s32 CreateThread(std::string n, void (*f)(), u32 priority);
+  s32 ExitThread();
   void StartThread(s32 id);
-  void SuspendThread();
+  void DelayThread(u32 usec);
   void SleepThread();
   void WakeupThread(s32 id);
-  void dispatchAll();
+  time_stamp dispatch();
   void set_rpc_queue(iop::sceSifQueueData* qd, u32 thread);
   void rpc_loop(iop::sceSifQueueData* qd);
   void shutdown();
 
   /*!
-   * Resume the kernel.
-   */
-  void returnToKernel() {
-    ASSERT(_currentThread >= 0);  // must be in a thread
-    threads[_currentThread].returnToKernel();
-  }
-
-  /*!
    * Get current thread ID.
    */
-  s32 getCurrentThread() { return _currentThread; }
+  s32 getCurrentThread() {
+    ASSERT(_currentThread);
+    return _currentThread->thID;
+  }
 
   /*!
    * Create a message box
@@ -123,11 +131,6 @@ class IOP_Kernel {
    * Returns if it got something.
    */
   s32 PollMbx(void** msg, s32 mbx) {
-    if (_currentThread != -1 && threads.at(_currentThread).wantExit) {
-      // total hack - returning this value causes the ISO thread to error out and quit.
-      return KE_WAIT_DELETE;
-    }
-
     ASSERT(mbx < (s32)mbxs.size());
     s32 gotSomething = mbxs[mbx].empty() ? 0 : 1;
     if (gotSomething) {
@@ -166,16 +169,25 @@ class IOP_Kernel {
                s32 recvSize);
 
  private:
-  void setupThread(s32 id);
-  void runThread(s32 id);
+  void runThread(IopThread* thread);
+  void exitThread();
+  void updateDelay();
+  void processWakeups();
+
+  IopThread* schedNext();
+  time_stamp nextWakeup();
+
+  cothread_t kernel_thread;
   s32 _nextThID = 0;
-  std::atomic<s32> _currentThread = {-1};
-  std::vector<IopThreadRecord> threads;
+  IopThread* _currentThread = nullptr;
+  std::vector<IopThread> threads;
   std::vector<std::queue<void*>> mbxs;
   std::vector<SifRecord> sif_records;
+  std::vector<Semaphore> semas;
+  std::queue<int> wakeup_queue;
   bool mainThreadSleep = false;
   FILE* iso_disc_file = nullptr;
-  std::mutex sif_mtx;
+  std::mutex sif_mtx, wakeup_mtx;
 };
 
 #endif  // JAK_IOP_KERNEL_H

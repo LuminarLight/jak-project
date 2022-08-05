@@ -1,6 +1,7 @@
 add_library(
         decomp
 
+        analysis/analyze_inspect_method.cpp
         analysis/atomic_op_builder.cpp
         analysis/cfg_builder.cpp
         analysis/expression_build.cpp
@@ -83,6 +84,8 @@ target_link_libraries(decomp
         lzokay
         common
         fmt
+        stb_image
+        xdelta3
         )
 
 add_executable(decompiler
@@ -92,15 +95,17 @@ target_link_libraries(decompiler
         decomp
         common
         lzokay
-        fmt)
+        fmt
+        stb_image)
 
 
 add_executable(extractor
-        extractor/main.cpp)
+        extractor/main.cpp extractor/extractor_util.hpp )
 
 target_link_libraries(extractor
         decomp
         common
         lzokay
         fmt
-        compiler)
+        compiler
+        stb_image)

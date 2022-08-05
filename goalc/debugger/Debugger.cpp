@@ -5,14 +5,17 @@
  */
 
 #include "Debugger.h"
+
 #include "common/goal_constants.h"
 #include "common/symbols.h"
+#include "common/util/Assert.h"
 #include "common/util/Timer.h"
+
 #include "goalc/debugger/disassemble.h"
 #include "goalc/emitter/Register.h"
 #include "goalc/listener/Listener.h"
+
 #include "third-party/fmt/core.h"
-#include "common/util/Assert.h"
 
 /*!
  * Is the target halted? If we don't know or aren't connected, returns false.
@@ -515,6 +518,7 @@ bool Debugger::write_memory(const u8* src_buffer, int size, u32 goal_addr) {
 void Debugger::read_symbol_table() {
   // todo: this assumes many things specific to jak 1.
   using namespace jak1_symbols;
+  using namespace jak1;
   ASSERT(is_valid() && is_attached() && is_halted());
   u32 bytes_read = 0;
   u32 reads = 0;

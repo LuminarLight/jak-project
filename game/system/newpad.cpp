@@ -5,10 +5,12 @@
  */
 
 #include "newpad.h"
+
 #include "common/log/log.h"
 #include "common/util/Assert.h"
-#include "game/graphics/pipelines/opengl.h"  // for GLFW macros
 #include <common/util/FileUtil.h>
+
+#include "game/graphics/pipelines/opengl.h"  // for GLFW macros
 
 namespace Pad {
 
@@ -197,6 +199,11 @@ void DefaultMapping(MappingInfo& mapping) {
     }
   }
 
+  // TODO - these are different from the analog bindings above and cause
+  // the keyboard to be bound to controls regardless
+  //
+  // Need someway to toggle off -- where do we have access to the game's settings?
+
   // R1 / L1
   MapButton(mapping, Button::L1, 0, GLFW_KEY_Q);
   MapButton(mapping, Button::R1, 0, GLFW_KEY_O);
@@ -354,6 +361,14 @@ void update_gamepads() {
     read_pad_state(1);
   else
     clear_pad(1);
+}
+
+int rumble(int pad, float slow_motor, float fast_motor) {
+  if (g_gamepads.gamepad_idx[pad] != -1 &&
+      glfwSetJoystickRumble(g_gamepads.gamepad_idx[pad], slow_motor, fast_motor)) {
+    return 1;
+  }
+  return 0;
 }
 
 };  // namespace Pad

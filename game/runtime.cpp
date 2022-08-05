@@ -5,9 +5,11 @@
 
 #ifdef __linux__
 #include <unistd.h>
+
 #include <sys/mman.h>
 #elif _WIN32
 #include <io.h>
+
 #include "third-party/mman/mman.h"
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
@@ -18,49 +20,55 @@
 #include <cstring>
 #include <thread>
 
-#include "common/log/log.h"
 #include "runtime.h"
-#include "system/SystemThread.h"
-#include "sce/libcdvd_ee.h"
-#include "sce/deci2.h"
-#include "sce/sif_ee.h"
-#include "sce/iop.h"
-#include "game/system/Deci2Server.h"
 
-#include "game/kernel/fileio.h"
-#include "game/kernel/kboot.h"
-#include "game/kernel/klink.h"
-#include "game/kernel/kscheme.h"
-#include "game/kernel/kdsnetm.h"
-#include "game/kernel/klisten.h"
-#include "game/kernel/kmemcard.h"
-#include "game/kernel/kprint.h"
-#include "game/kernel/kdgo.h"
-
-#include "game/system/iop_thread.h"
-
-#include "game/overlord/dma.h"
-#include "game/overlord/iso.h"
-#include "game/overlord/fake_iso.h"
-#include "game/overlord/iso_queue.h"
-#include "game/overlord/ramdisk.h"
-#include "game/overlord/iso_cd.h"
-#include "game/overlord/overlord.h"
-#include "game/overlord/srpc.h"
-#include "game/overlord/stream.h"
-#include "game/overlord/sbank.h"
+#include "common/cross_os_debug/xdbg.h"
+#include "common/goal_constants.h"
+#include "common/log/log.h"
+#include "common/util/FileUtil.h"
+#include "common/versions.h"
 
 #include "game/graphics/gfx.h"
-
-#include "game/system/vm/vm.h"
+#include "game/kernel/common/fileio.h"
+#include "game/kernel/common/kdgo.h"
+#include "game/kernel/common/kdsnetm.h"
+#include "game/kernel/common/klink.h"
+#include "game/kernel/common/klisten.h"
+#include "game/kernel/common/kmachine.h"
+#include "game/kernel/common/kmalloc.h"
+#include "game/kernel/common/kmemcard.h"
+#include "game/kernel/common/kprint.h"
+#include "game/kernel/common/kscheme.h"
+#include "game/kernel/jak1/kboot.h"
+#include "game/kernel/jak1/klisten.h"
+#include "game/kernel/jak1/kscheme.h"
+#include "game/kernel/jak2/kboot.h"
+#include "game/kernel/jak2/klisten.h"
+#include "game/kernel/jak2/kscheme.h"
+#include "game/overlord/dma.h"
+#include "game/overlord/fake_iso.h"
+#include "game/overlord/iso.h"
+#include "game/overlord/iso_cd.h"
+#include "game/overlord/iso_queue.h"
+#include "game/overlord/overlord.h"
+#include "game/overlord/ramdisk.h"
+#include "game/overlord/sbank.h"
+#include "game/overlord/srpc.h"
+#include "game/overlord/ssound.h"
+#include "game/overlord/stream.h"
+#include "game/system/Deci2Server.h"
+#include "game/system/iop_thread.h"
 #include "game/system/vm/dmac.h"
-
-#include "common/goal_constants.h"
-#include "common/cross_os_debug/xdbg.h"
-#include "common/util/FileUtil.h"
+#include "game/system/vm/vm.h"
+#include "sce/deci2.h"
+#include "sce/iop.h"
+#include "sce/libcdvd_ee.h"
+#include "sce/sif_ee.h"
+#include "system/SystemThread.h"
 
 u8* g_ee_main_mem = nullptr;
 std::thread::id g_main_thread_id = std::thread::id();
+GameVersion g_game_version = GameVersion::Jak1;
 
 namespace {
 
@@ -84,7 +92,10 @@ void deci2_runner(SystemThreadInterface& iface) {
 
   // in our own thread, wait for the EE to register the first protocol driver
   lg::debug("[DECI2] Waiting for EE to register protos");
-  server.wait_for_protos_ready();
+  if (!server.wait_for_protos_ready()) {
+    // requested shutdown before protos became ready.
+    return;
+  }
   // then allow the server to accept connections
   bool server_ok = server.init_server();
   if (!server_ok) {
@@ -146,29 +157,44 @@ void ee_runner(SystemThreadInterface& iface) {
   // this may not work well on systems with a page size > 1 MB.
   mprotect((void*)g_ee_main_mem, EE_MAIN_MEM_LOW_PROTECT, PROT_NONE);
   fileio_init_globals();
-  kboot_init_globals();
+  jak1::kboot_init_globals();
+  jak2::kboot_init_globals();
+
+  kboot_init_globals_common();
   kdgo_init_globals();
-  kdsnetm_init_globals();
+  kdsnetm_init_globals_common();
   klink_init_globals();
 
-  kmachine_init_globals();
-  kscheme_init_globals();
-  kmalloc_init_globals();
+  kmachine_init_globals_common();
+  jak1::kscheme_init_globals();
+  jak2::kscheme_init_globals();
+  kscheme_init_globals_common();
+  kmalloc_init_globals_common();
 
   klisten_init_globals();
+  jak1::klisten_init_globals();
+  jak2::klisten_init_globals();
+
   kmemcard_init_globals();
-  kprint_init_globals();
+  kprint_init_globals_common();
 
   // Added for OpenGOAL's debugger
   xdbg::allow_debugging();
 
-  goal_main(g_argc, g_argv);
+  switch (g_game_version) {
+    case GameVersion::Jak1:
+      jak1::goal_main(g_argc, g_argv);
+      break;
+    case GameVersion::Jak2:
+      jak2::goal_main(g_argc, g_argv);
+      break;
+    default:
+      ASSERT_MSG(false, "Unsupported game version");
+  }
   lg::debug("[EE] Done!");
 
   //  // kill the IOP todo
   iop::LIBRARY_kill();
-
-  munmap(g_ee_main_mem, EE_MAIN_MEM_SIZE);
 
   // after main returns, trigger a shutdown.
   iface.trigger_shutdown();
@@ -215,23 +241,21 @@ void iop_runner(SystemThreadInterface& iface) {
 
   // init
 
-  start_overlord(iop.overlord_argc, iop.overlord_argv);  // todo!
+  bool complete = false;
+  start_overlord_wrapper(iop.overlord_argc, iop.overlord_argv, &complete);  // todo!
+  while (complete == false) {
+    iop.wait_run_iop(iop.kernel.dispatch());
+  }
 
   // unblock the EE, the overlord is set up!
   iop.signal_overlord_init_finish();
 
   // IOP Kernel loop
   while (!iface.get_want_exit() && !iop.want_exit) {
-    // the IOP kernel just runs at full blast, so we only run the IOP when the EE is waiting on the
-    // IOP. Each time the EE is waiting on the IOP, it will run an iteration of the IOP kernel.
-    iop.wait_run_iop();
-    iop.kernel.dispatchAll();
+    // The IOP scheduler informs us of how many microseconds are left until it has something to do.
+    // So we can wait for that long or until something else needs it to wake up.
+    iop.wait_run_iop(iop.kernel.dispatch());
   }
-
-  // stop all threads in the iop kernel.
-  // if the threads are not stopped nicely, we will deadlock on trying to destroy the kernel's
-  // condition variables.
-  iop.kernel.shutdown();
 }
 }  // namespace
 
@@ -281,9 +305,8 @@ RuntimeExitStatus exec_runtime(int argc, char** argv) {
   g_argv = argv;
   g_main_thread_id = std::this_thread::get_id();
 
-  file_util::create_dir_if_needed("game_config/");
-
   // parse opengoal arguments
+  g_game_version = GameVersion::Jak1;
   bool enable_display = true;
   for (int i = 1; i < argc; i++) {
     if (std::string("-nodisplay") == argv[i]) {  // disable video display
@@ -292,13 +315,15 @@ RuntimeExitStatus exec_runtime(int argc, char** argv) {
       VM::use = true;
     } else if (std::string("-novm") == argv[i]) {  // disable debug ps2 VM
       VM::use = false;
+    } else if (std::string("-jak2") == argv[i]) {
+      g_game_version = GameVersion::Jak2;
     }
   }
 
   // initialize graphics first - the EE code will upload textures during boot and we
   // want the graphics system to catch them.
   if (enable_display) {
-    Gfx::Init();
+    Gfx::Init(g_game_version);
   }
 
   // step 1: sce library prep
@@ -330,6 +355,9 @@ RuntimeExitStatus exec_runtime(int argc, char** argv) {
     Gfx::Exit();
   }
 
+  // hack to make the IOP die quicker if it's loading/unloading music
+  gMusicFade = 0;
+
   deci_thread.join();
   // DECI has been killed, shutdown!
 
@@ -339,5 +367,6 @@ RuntimeExitStatus exec_runtime(int argc, char** argv) {
   // join and exit
   tm.join();
   lg::info("GOAL Runtime Shutdown (code {})", MasterExit);
+  munmap(g_ee_main_mem, EE_MAIN_MEM_SIZE);
   return MasterExit;
 }

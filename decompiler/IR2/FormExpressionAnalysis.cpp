@@ -1,17 +1,19 @@
 #include "Form.h"
 #include "FormStack.h"
 #include "GenericElementMatcher.h"
+
 #include "common/goos/PrettyPrinter.h"
-#include "decompiler/util/DecompilerTypeSystem.h"
-#include "decompiler/ObjectFile/LinkedObjectFile.h"
-#include "decompiler/util/data_decompile.h"
-#include "decompiler/IR2/bitfields.h"
-#include "common/util/BitUtils.h"
 #include "common/type_system/state.h"
-#include "common/util/print_float.h"
-#include "decompiler/IR2/ExpressionHelpers.h"
-#include "decompiler/util/goal_constants.h"
 #include "common/util/Assert.h"
+#include "common/util/BitUtils.h"
+#include "common/util/print_float.h"
+
+#include "decompiler/IR2/ExpressionHelpers.h"
+#include "decompiler/IR2/bitfields.h"
+#include "decompiler/ObjectFile/LinkedObjectFile.h"
+#include "decompiler/util/DecompilerTypeSystem.h"
+#include "decompiler/util/data_decompile.h"
+#include "decompiler/util/goal_constants.h"
 
 /*
  * TODO
@@ -93,6 +95,19 @@ Form* try_cast_simplify(Form* in,
   if (in_as_reslump) {
     in_as_reslump->apply_cast(new_type);
     return in;
+  }
+
+  if (env.version == GameVersion::Jak2) {
+    if (new_type == TypeSpec("float")) {
+      auto ic = get_goal_integer_constant(in, env);
+      if (ic) {
+        // ASSERT(*ic <= UINT32_MAX);
+        ASSERT((s64)*ic == (s64)(s32)*ic);
+        float f;
+        memcpy(&f, &ic.value(), sizeof(float));
+        return pool.form<ConstantFloatElement>(f);
+      }
+    }
   }
 
   if (new_type == TypeSpec("meters")) {
@@ -181,7 +196,7 @@ Form* try_cast_simplify(Form* in,
     }
   }
 
-  auto type_info = env.dts->ts.lookup_type(new_type);
+  auto type_info = env.dts->ts.lookup_type_allow_partial_def(new_type);
   auto bitfield_info = dynamic_cast<BitFieldType*>(type_info);
   if (bitfield_info) {
     // todo remove this.
@@ -680,6 +695,15 @@ void SimpleExpressionElement::update_from_stack_identity(const Env& env,
   }
 }
 
+bool u64_valid_for_float_constant(u64 in) {
+  u32 top = in >> 32;
+  if (top == 0 || top == UINT32_MAX) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void SimpleExpressionElement::update_from_stack_gpr_to_fpr(const Env& env,
                                                            FormPool& pool,
                                                            FormStack& stack,
@@ -706,10 +730,26 @@ void SimpleExpressionElement::update_from_stack_gpr_to_fpr(const Env& env,
       result->push_back(x);
     }
   } else {
-    // converting something else to an FPR, put an expression around it.
-    result->push_back(pool.alloc_element<GenericElement>(
-        GenericOperator::make_fixed(FixedOperatorKind::GPR_TO_FPR),
-        pool.alloc_sequence_form(nullptr, src_fes)));
+    if (env.version != GameVersion::Jak1) {
+      auto frm = pool.alloc_sequence_form(nullptr, src_fes);
+      if (src_fes.size() == 1) {
+        auto int_constant = get_goal_integer_constant(frm, env);
+        if (int_constant && u64_valid_for_float_constant(*int_constant)) {
+          float flt;
+
+          memcpy(&flt, &int_constant.value(), sizeof(float));
+          result->push_back(pool.alloc_element<ConstantFloatElement>(flt));
+          return;
+        }
+      }
+      // converting something else to an FPR, put an expression around it.
+      result->push_back(pool.alloc_element<GenericElement>(
+          GenericOperator::make_fixed(FixedOperatorKind::GPR_TO_FPR), frm));
+    } else {
+      result->push_back(pool.alloc_element<GenericElement>(
+          GenericOperator::make_fixed(FixedOperatorKind::GPR_TO_FPR),
+          pool.alloc_sequence_form(nullptr, src_fes)));
+    }
   }
 }
 
@@ -944,7 +984,18 @@ void SimpleExpressionElement::update_from_stack_add_i(const Env& env,
 
     // try to find symbol to string stuff
     auto arg0_int = get_goal_integer_constant(args.at(0), env);
-    if (arg0_int && (*arg0_int == DECOMP_SYM_INFO_OFFSET + 4) &&
+    u64 symbol_to_string_offset = -1;
+    switch (env.version) {
+      case GameVersion::Jak1:
+        symbol_to_string_offset = DECOMP_SYM_INFO_OFFSET + 4;
+        break;
+      case GameVersion::Jak2:
+        symbol_to_string_offset = jak2::SYM_TO_STRING_OFFSET;
+        break;
+      default:
+        ASSERT(false);
+    }
+    if (arg0_int && (*arg0_int == symbol_to_string_offset) &&
         arg1_type.typespec() == TypeSpec("symbol")) {
       result->push_back(pool.alloc_element<GetSymbolStringPointer>(args.at(1)));
       return;
@@ -1777,10 +1828,7 @@ void SimpleExpressionElement::update_from_stack_logor_or_logand(const Env& env,
                          Matcher::op(GenericOpMatcher::fixed(FixedOperatorKind::LOGAND),
                                      {Matcher::any(a_form), lognot_submatchers})});
 
-  Form hack_form;
-  hack_form.elts().push_back(element);
-
-  auto mr = match(logclear_matcher, &hack_form);
+  auto mr = match(logclear_matcher, element);
   if (mr.matched) {
     result->push_back(pool.alloc_element<GenericElement>(
         GenericOperator::make_fixed(FixedOperatorKind::LOGCLEAR),
@@ -1798,7 +1846,7 @@ void SimpleExpressionElement::update_from_stack_logor_or_logand(const Env& env,
             Matcher::integer(32)}),
        Matcher::op_fixed(FixedOperatorKind::ASM_SLLV_R0, {Matcher::any_reg(1)})});
 
-  auto handle_mr = match(make_handle_matcher, &hack_form);
+  auto handle_mr = match(make_handle_matcher, element);
   if (handle_mr.matched) {
     auto var_a = handle_mr.maps.regs.at(0).value();
     auto var_b = handle_mr.maps.regs.at(1).value();
@@ -2572,10 +2620,7 @@ bool try_to_rewrite_vector_inline_ctor(const Env& env,
     auto matcher = Matcher::set(Matcher::deref(Matcher::any_reg(0), false, token_matchers),
                                 Matcher::cast("uint128", Matcher::integer(0)));
 
-    Form hack;
-    hack.elts().push_back(elt);
-    auto mr = match(matcher, &hack);
-
+    auto mr = match(matcher, elt);
     if (mr.matched) {
       if (var_name != env.get_variable_name(*mr.maps.regs.at(0))) {
         return false;
@@ -2622,26 +2667,53 @@ bool try_to_rewrite_matrix_inline_ctor(const Env& env, FormPool& pool, FormStack
 
     // zeroing the rows:
     std::vector<RegisterAccess> write_vars;
-    for (int i = 0; i < 4; i++) {
-      auto elt = matrix_entries->at(i + 1).elt;
+    if (env.version == GameVersion::Jak1) {
+      for (int i = 0; i < 4; i++) {
+        auto elt = matrix_entries->at(i + 1).elt;
 
-      auto matcher = Matcher::set(
-          Matcher::deref(Matcher::any_reg(0), false,
-                         {DerefTokenMatcher::string("vector"), DerefTokenMatcher::integer(i),
-                          DerefTokenMatcher::string("quad")}),
-          Matcher::cast("uint128", Matcher::integer(0)));
+        auto matcher = Matcher::set(
+            Matcher::deref(Matcher::any_reg(0), false,
+                           {DerefTokenMatcher::string("vector"), DerefTokenMatcher::integer(i),
+                            DerefTokenMatcher::string("quad")}),
+            Matcher::cast("uint128", Matcher::integer(0)));
 
-      Form hack;
-      hack.elts().push_back(elt);
-      auto mr = match(matcher, &hack);
-
-      if (mr.matched) {
-        if (var_name != env.get_variable_name(*mr.maps.regs.at(0))) {
+        auto mr = match(matcher, elt);
+        if (mr.matched) {
+          if (var_name != env.get_variable_name(*mr.maps.regs.at(0))) {
+            return false;
+          }
+          write_vars.push_back(*mr.maps.regs.at(0));
+        } else {
           return false;
         }
-        write_vars.push_back(*mr.maps.regs.at(0));
-      } else {
-        return false;
+      }
+    } else {
+      for (int i = 0; i < 4; i++) {
+        auto elt = matrix_entries->at(i + 1).elt;
+
+        Matcher matcher;
+        if (i == 3) {
+          matcher = Matcher::set(Matcher::deref(Matcher::any_reg(0), false,
+                                                {DerefTokenMatcher::string("trans"),
+                                                 DerefTokenMatcher::string("quad")}),
+                                 Matcher::cast("uint128", Matcher::integer(0)));
+
+        } else {
+          matcher = Matcher::set(
+              Matcher::deref(Matcher::any_reg(0), false,
+                             {DerefTokenMatcher::string("quad"), DerefTokenMatcher::integer(i)}),
+              Matcher::cast("uint128", Matcher::integer(0)));
+        }
+
+        auto mr = match(matcher, elt);
+        if (mr.matched) {
+          if (var_name != env.get_variable_name(*mr.maps.regs.at(0))) {
+            return false;
+          }
+          write_vars.push_back(*mr.maps.regs.at(0));
+        } else {
+          return false;
+        }
       }
     }
 
@@ -2800,6 +2872,28 @@ Form* get_set_next_state(FormElement* set_elt, const Env& env) {
 ///////////////////
 // FunctionCallElement
 ///////////////////
+
+namespace {
+
+std::optional<RegisterAccess> get_form_reg_acc(Form* in) {
+  auto as_simple_atom = dynamic_cast<SimpleAtomElement*>(in->try_as_single_active_element());
+  if (as_simple_atom) {
+    if (as_simple_atom->atom().is_var()) {
+      return as_simple_atom->atom().var();
+    }
+  }
+
+  auto as_expr = dynamic_cast<SimpleExpressionElement*>(in->try_as_single_active_element());
+  if (as_expr && as_expr->expr().is_identity()) {
+    auto atom = as_expr->expr().get_arg(0);
+    if (atom.is_var()) {
+      return atom.var();
+    }
+  }
+
+  return {};
+}
+}  // namespace
 
 void FunctionCallElement::update_from_stack(const Env& env,
                                             FormPool& pool,
@@ -2989,12 +3083,186 @@ void FunctionCallElement::update_from_stack(const Env& env,
                          .at(0);
           // fmt::print("GOT: {}\n", pop->to_string(env));
           arg_forms.at(0) = pop;
+          auto head = mr.maps.forms.at(1);
 
-          new_form = pool.alloc_element<GenericElement>(
-              GenericOperator::make_function(mr.maps.forms.at(1)), arg_forms);
+          auto head_obj = head->to_form(env);
+          if (head_obj.is_symbol() && tp_type.method_from_type().base_type() == "setting-control" &&
+              arg_forms.at(0)->to_form(env).is_symbol("*setting-control*") &&
+              arg_forms.size() > 1) {
+            auto arg1_reg = get_form_reg_acc(arg_forms.at(1));
+            if (arg1_reg && arg1_reg->reg().is_s6()) {
+              std::string new_head;
+              if (head_obj.is_symbol("add-setting")) {
+                new_head = "add-setting!";
+              } else if (head_obj.is_symbol("set-setting")) {
+                new_head = "set-setting!";
+              } else if (head_obj.is_symbol("remove-setting")) {
+                new_head = "remove-setting!";
+              }
+              if (!new_head.empty()) {
+                auto oldp = head->parent_element;
+                head = pool.form<ConstantTokenElement>(new_head);
+                head->parent_element = oldp;
+                arg_forms.erase(arg_forms.begin());
+                arg_forms.erase(arg_forms.begin());
+                if (arg_forms.size() > 3) {
+                  auto argi = arg_forms.at(3);
+                  auto argi_o = argi->to_form(env);
+                  if (argi_o.is_int()) {
+                    auto argset = arg_forms.at(0)->to_string(env);
+                    if (argset == "'process-mask") {
+                      auto en = env.dts->ts.try_enum_lookup("process-mask");
+                      if (en) {
+                        arg_forms.at(3) =
+                            cast_to_bitfield_enum(env.dts->ts.try_enum_lookup("process-mask"), pool,
+                                                  env, argi_o.as_int());
+                      }
+                    } else if (argset == "'sound-flava") {
+                      auto en = env.dts->ts.try_enum_lookup("music-flava");
+                      if (en) {
+                        arg_forms.at(3) = cast_to_int_enum(
+                            env.dts->ts.try_enum_lookup("music-flava"), pool, env, argi_o.as_int());
+                      }
+                    }
+                  }
+                  arg_forms.at(3)->parent_element = argi->parent_element;
+                }
+              }
+            }
+          }
+
+          new_form =
+              pool.alloc_element<GenericElement>(GenericOperator::make_function(head), arg_forms);
           result->push_back(new_form);
           ASSERT(!go_next_state);
           return;
+        }
+      }
+    }
+  }
+
+  // check for sound-play stuff
+  {
+    if (arg_forms.size() == 7 && unstacked.at(0)->to_form(env).is_symbol("sound-play-by-name")) {
+      auto ssn = arg_forms.at(0)->to_string(env);
+      static const std::string ssn_check = "(static-sound-name \"";
+      // idk what a good way to do this is :(
+      if (ssn.substr(0, ssn_check.size()) == ssn_check) {
+        // get sound name
+        auto sound_name = ssn.substr(ssn_check.size(), ssn.size() - ssn_check.size() - 2);
+
+        // get sound id
+        auto so_id_f = arg_forms.at(1);
+        if (so_id_f->to_string(env) == "(new-sound-id)") {
+          so_id_f = nullptr;
+        }
+
+        // get sound volume
+        bool panic = false;
+        auto so_vol_o = arg_forms.at(2)->to_form(env);
+        Form* so_vol_f = nullptr;
+        if (so_vol_o.is_int()) {
+          auto vol_as_flt_temp = fixed_point_to_float(so_vol_o.as_int(), 1024) * 100;
+          // fixed point convert is good but floating point accuracy sucks so we can do even better
+          // with a hardcoded case
+          for (int i = 0; i < 100; ++i) {
+            if (int(i * 1024.0f / 100.0f) == so_vol_o.as_int()) {
+              vol_as_flt_temp = i;
+              break;
+            }
+          }
+          // make the number now...
+          if (int(vol_as_flt_temp * 1024.0f / 100.0f) == so_vol_o.as_int()) {
+            if (so_vol_o.as_int() != 1024) {
+              so_vol_f = pool.form<ConstantTokenElement>(float_to_string(vol_as_flt_temp, false));
+            }
+          }
+        } else {
+          auto mr_vol = match(
+              Matcher::cast("int", Matcher::op_fixed(FixedOperatorKind::MULTIPLICATION,
+                                                     {Matcher::single(10.24f), Matcher::any(0)})),
+              arg_forms.at(2));
+          if (mr_vol.matched) {
+            so_vol_f = mr_vol.maps.forms.at(0);
+          } else {
+            // AAAHHHH i dont know how to handle this volume thing!
+            panic = true;
+          }
+        }
+
+        // get sound pitch mod
+        auto so_pitch_o = arg_forms.at(3)->to_form(env);
+        Form* so_pitch_f = nullptr;
+        if (so_pitch_o.is_int()) {
+          if (so_pitch_o.as_int() != 0) {
+            so_pitch_f =
+                pool.form<ConstantTokenElement>(fixed_point_to_string(so_pitch_o.as_int(), 1524));
+          }
+        } else {
+          auto mr_pitch = match(
+              Matcher::cast("int", Matcher::op_fixed(FixedOperatorKind::MULTIPLICATION,
+                                                     {Matcher::single(1524), Matcher::any(0)})),
+              arg_forms.at(3));
+          if (mr_pitch.matched) {
+            so_pitch_f = mr_pitch.maps.forms.at(0);
+          } else {
+            panic = true;
+          }
+        }
+
+        // rest
+        if (!panic) {
+          auto so_bend = arg_forms.at(4);
+          if (so_bend->to_form(env).is_int(0)) {
+            so_bend = nullptr;
+          }
+          auto elt_group = arg_forms.at(5)->try_as_element<GenericElement>();
+          if (elt_group && elt_group->op().is_func() &&
+              elt_group->op().func()->to_form(env).is_symbol("sound-group") &&
+              elt_group->elts().size() == 1) {
+            Form* so_group_f = nullptr;
+            if (!elt_group->elts().at(0)->to_form(env).is_symbol("sfx")) {
+              so_group_f = pool.form<ConstantTokenElement>(
+                  elt_group->elts().at(0)->to_form(env).as_symbol()->name);
+            }
+            auto so_positional_f = arg_forms.at(6);
+            if (so_positional_f->to_form(env).is_symbol("#t")) {
+              so_positional_f = nullptr;
+            }
+            // now make the macro call!
+            std::vector<Form*> macro_args;
+            macro_args.push_back(pool.form<StringConstantElement>(sound_name));
+            if (so_id_f) {
+              macro_args.push_back(pool.form<ConstantTokenElement>(":id"));
+              macro_args.push_back(so_id_f);
+            }
+            if (so_vol_f) {
+              macro_args.push_back(pool.form<ConstantTokenElement>(":vol"));
+              macro_args.push_back(so_vol_f);
+            }
+            if (so_pitch_f) {
+              macro_args.push_back(pool.form<ConstantTokenElement>(":pitch"));
+              macro_args.push_back(so_pitch_f);
+            }
+            if (so_bend) {
+              macro_args.push_back(pool.form<ConstantTokenElement>(":bend"));
+              macro_args.push_back(so_bend);
+            }
+            if (so_group_f) {
+              macro_args.push_back(pool.form<ConstantTokenElement>(":group"));
+              macro_args.push_back(so_group_f);
+            }
+            if (so_positional_f) {
+              macro_args.push_back(pool.form<ConstantTokenElement>(":position"));
+              macro_args.push_back(so_positional_f);
+            }
+
+            new_form = pool.alloc_element<GenericElement>(
+                GenericOperator::make_function(pool.form<ConstantTokenElement>("sound-play")),
+                macro_args);
+            result->push_back(new_form);
+            return;
+          }
         }
       }
     }
@@ -3349,6 +3617,22 @@ void UntilElement::push_to_stack(const Env& env, FormPool& pool, FormStack& stac
   }
 
   stack.push_form_element(this, true);
+  if (false_destination) {
+    env.func->warnings.general_warning("new jak 2 until loop case, check carefully");
+    stack.push_value_to_reg(*false_destination,
+                            pool.form<SimpleAtomElement>(SimpleAtom::make_sym_val("#f")), true,
+                            TypeSpec("symbol"));
+    RegAccessSet accessed_regs;
+    body->collect_vars(accessed_regs, true);
+    condition->collect_vars(accessed_regs, true);
+    auto check_name = env.get_variable_name(*false_destination);
+    for (auto& reg : accessed_regs) {
+      if (env.get_variable_name(reg) == check_name) {
+        ASSERT_MSG(false, fmt::format("Jak 2 loop uses delay slot variable improperly: {} {}\n",
+                                      env.func->name(), check_name));
+      }
+    }
+  }
 }
 
 void WhileElement::push_to_stack(const Env& env, FormPool& pool, FormStack& stack) {
@@ -3489,7 +3773,7 @@ Form* try_rewrite_as_ja_group(CondNoElseElement* value,
   auto body = value->entries[0].body;
 
   // safe to look for a reg directly here.
-  auto condition_matcher = Matcher::fixed_op(
+  auto condition_matcher = Matcher::op_fixed(
       FixedOperatorKind::GT, {Matcher::deref(Matcher::s6(), false,
                                              {DerefTokenMatcher::string("skel"),
                                               DerefTokenMatcher::string("active-channels")}),
@@ -3963,6 +4247,24 @@ std::vector<Form*> cast_to_64_bit(const std::vector<Form*>& forms,
   }
   return result;
 }
+
+FormElement* try_make_nonzero_logtest(Form* in, FormPool& pool) {
+  /*
+ (defmacro logtest? (a b)
+   "does a have any of the bits in b?"
+   `(nonzero? (logand ,a ,b))
+   )
+ */
+  auto logand_matcher = Matcher::op(GenericOpMatcher::fixed(FixedOperatorKind::LOGAND),
+                                    {Matcher::any(0), Matcher::any(1)});
+  auto mr_logand = match(logand_matcher, in);
+  if (mr_logand.matched) {
+    return pool.alloc_element<GenericElement>(
+        GenericOperator::make_fixed(FixedOperatorKind::LOGTEST), mr_logand.maps.forms.at(0),
+        mr_logand.maps.forms.at(1));
+  }
+  return nullptr;
+}
 }  // namespace
 
 FormElement* ConditionElement::make_zero_check_generic(const Env& env,
@@ -4011,25 +4313,17 @@ FormElement* ConditionElement::make_zero_check_generic(const Env& env,
         std::vector<Form*>{source_forms.at(0), nice_constant});
   }
 
-  return pool.alloc_element<GenericElement>(GenericOperator::make_compare(m_kind), source_forms);
-}
-
-FormElement* try_make_nonzero_logtest(Form* in, FormPool& pool) {
   /*
- (defmacro logtest? (a b)
-   "does a have any of the bits in b?"
-   `(nonzero? (logand ,a ,b))
-   )
- */
-  auto logand_matcher = Matcher::op(GenericOpMatcher::fixed(FixedOperatorKind::LOGAND),
-                                    {Matcher::any(0), Matcher::any(1)});
-  auto mr_logand = match(logand_matcher, in);
-  if (mr_logand.matched) {
-    return pool.alloc_element<GenericElement>(
-        GenericOperator::make_fixed(FixedOperatorKind::LOGTEST), mr_logand.maps.forms.at(0),
-        mr_logand.maps.forms.at(1));
+  auto as_logtest = try_make_nonzero_logtest(source_forms.at(0), pool);
+  if (as_logtest) {
+    auto logtest_form = pool.alloc_single_form(nullptr, as_logtest);
+    auto not_form = pool.alloc_element<GenericElement>(
+        GenericOperator::make_compare(IR2_Condition::Kind::FALSE), logtest_form);
+    return not_form;
   }
-  return nullptr;
+   */
+
+  return pool.alloc_element<GenericElement>(GenericOperator::make_compare(m_kind), source_forms);
 }
 
 FormElement* try_make_logtest_cpad_macro(Form* in, FormPool& pool) {
@@ -4948,8 +5242,8 @@ void DynamicMethodAccess::update_from_stack(const Env& env,
 
   // (+ (* method-id 4) (the-as int child-type))
   auto mult_matcher =
-      Matcher::fixed_op(FixedOperatorKind::MULTIPLICATION, {reg0_matcher, Matcher::integer(4)});
-  auto matcher = Matcher::fixed_op(FixedOperatorKind::ADDITION, {mult_matcher, reg1_matcher});
+      Matcher::op_fixed(FixedOperatorKind::MULTIPLICATION, {reg0_matcher, Matcher::integer(4)});
+  auto matcher = Matcher::op_fixed(FixedOperatorKind::ADDITION, {mult_matcher, reg1_matcher});
   auto match_result = match(matcher, new_val);
   if (!match_result.matched) {
     throw std::runtime_error("Could not match DynamicMethodAccess values: " +
@@ -4989,8 +5283,8 @@ void ArrayFieldAccess::update_with_val(Form* new_val,
 
       // (&+ data-ptr <idx>)
       auto matcher = Matcher::match_or(
-          {Matcher::fixed_op(FixedOperatorKind::ADDITION, {base_matcher, offset_matcher}),
-           Matcher::fixed_op(FixedOperatorKind::ADDITION_PTR, {base_matcher, offset_matcher})});
+          {Matcher::op_fixed(FixedOperatorKind::ADDITION, {base_matcher, offset_matcher}),
+           Matcher::op_fixed(FixedOperatorKind::ADDITION_PTR, {base_matcher, offset_matcher})});
 
       auto match_result = match(matcher, new_val);
       if (!match_result.matched) {
@@ -5024,17 +5318,17 @@ void ArrayFieldAccess::update_with_val(Form* new_val,
                              Matcher::cast("uint", Matcher::any(0)), Matcher::any(0)});
       auto reg1_matcher =
           Matcher::match_or({Matcher::cast("uint", Matcher::any(1)), Matcher::any(1)});
-      auto mult_matcher = Matcher::fixed_op(FixedOperatorKind::MULTIPLICATION,
+      auto mult_matcher = Matcher::op_fixed(FixedOperatorKind::MULTIPLICATION,
                                             {reg1_matcher, Matcher::integer(m_expected_stride)});
       mult_matcher = Matcher::match_or({Matcher::cast("uint", mult_matcher), mult_matcher});
       auto matcher = Matcher::match_or(
-          {Matcher::fixed_op(FixedOperatorKind::ADDITION, {reg0_matcher, mult_matcher}),
-           Matcher::fixed_op(FixedOperatorKind::ADDITION_PTR, {reg0_matcher, mult_matcher})});
+          {Matcher::op_fixed(FixedOperatorKind::ADDITION, {reg0_matcher, mult_matcher}),
+           Matcher::op_fixed(FixedOperatorKind::ADDITION_PTR, {reg0_matcher, mult_matcher})});
       auto match_result = match(matcher, new_val);
       if (!match_result.matched) {
         matcher = Matcher::match_or(
-            {Matcher::fixed_op(FixedOperatorKind::ADDITION, {mult_matcher, reg0_matcher}),
-             Matcher::fixed_op(FixedOperatorKind::ADDITION_PTR, {mult_matcher, reg0_matcher})});
+            {Matcher::op_fixed(FixedOperatorKind::ADDITION, {mult_matcher, reg0_matcher}),
+             Matcher::op_fixed(FixedOperatorKind::ADDITION_PTR, {mult_matcher, reg0_matcher})});
         match_result = match(matcher, new_val);
         if (!match_result.matched) {
           result->push_back(this);
@@ -5107,7 +5401,7 @@ void ArrayFieldAccess::update_with_val(Form* new_val,
       auto reg1_matcher =
           Matcher::match_or({Matcher::cast("int", Matcher::any(1)),
                              Matcher::cast("uint", Matcher::any(1)), Matcher::any(1)});
-      auto matcher = Matcher::fixed_op(FixedOperatorKind::ADDITION, {reg0_matcher, reg1_matcher});
+      auto matcher = Matcher::op_fixed(FixedOperatorKind::ADDITION, {reg0_matcher, reg1_matcher});
       auto match_result = match(matcher, new_val);
       if (!match_result.matched) {
         throw std::runtime_error("Could not match ArrayFieldAccess (stride 1) values: " +
@@ -5135,18 +5429,18 @@ void ArrayFieldAccess::update_with_val(Form* new_val,
       auto reg1_matcher =
           Matcher::match_or({Matcher::cast("uint", Matcher::any(1)),
                              Matcher::cast("int", Matcher::any(1)), Matcher::any(1)});
-      auto mult_matcher = Matcher::fixed_op(FixedOperatorKind::MULTIPLICATION,
+      auto mult_matcher = Matcher::op_fixed(FixedOperatorKind::MULTIPLICATION,
                                             {reg0_matcher, Matcher::integer(m_expected_stride)});
       mult_matcher = Matcher::match_or({Matcher::cast("uint", mult_matcher), mult_matcher});
-      auto matcher = Matcher::fixed_op(FixedOperatorKind::ADDITION, {mult_matcher, reg1_matcher});
-      matcher = Matcher::match_or({matcher, Matcher::fixed_op(FixedOperatorKind::ADDITION_PTR,
+      auto matcher = Matcher::op_fixed(FixedOperatorKind::ADDITION, {mult_matcher, reg1_matcher});
+      matcher = Matcher::match_or({matcher, Matcher::op_fixed(FixedOperatorKind::ADDITION_PTR,
                                                               {reg1_matcher, mult_matcher})});
       auto match_result = match(matcher, new_val);
       Form* idx = nullptr;
       Form* base = nullptr;
       // TODO - figure out why it sometimes happens the other way.
       if (!match_result.matched) {
-        matcher = Matcher::fixed_op(FixedOperatorKind::ADDITION, {reg1_matcher, mult_matcher});
+        matcher = Matcher::op_fixed(FixedOperatorKind::ADDITION, {reg1_matcher, mult_matcher});
         match_result = match(matcher, new_val);
         if (!match_result.matched) {
           throw std::runtime_error("Could not match ArrayFieldAccess (stride power of 2) values: " +

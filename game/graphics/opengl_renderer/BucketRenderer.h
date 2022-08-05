@@ -1,13 +1,15 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <string>
+
 #include "common/dma/dma_chain_read.h"
-#include "game/graphics/opengl_renderer/Shader.h"
-#include "game/graphics/texture/TexturePool.h"
+
 #include "game/graphics/opengl_renderer/Profiler.h"
-#include "game/graphics/opengl_renderer/loader/Loader.h"
+#include "game/graphics/opengl_renderer/Shader.h"
 #include "game/graphics/opengl_renderer/buckets.h"
+#include "game/graphics/opengl_renderer/loader/Loader.h"
+#include "game/graphics/texture/TexturePool.h"
 
 struct LevelVis {
   bool valid = false;
@@ -37,11 +39,9 @@ struct SharedRenderState {
   bool use_sky_cpu = true;
   bool use_occlusion_culling = false;
   bool enable_merc_xgkick = true;
-  bool use_direct2 = true;
   math::Vector<u8, 4> fog_color;
   float fog_intensity = 1.f;
   bool no_multidraw = false;
-  bool merc2 = true;
 
   void reset();
   bool has_pc_data = false;
@@ -56,6 +56,24 @@ struct SharedRenderState {
   EyeRenderer* eye_renderer = nullptr;
 
   std::string load_status_debug;
+
+  // Information for renderers that need to read framebuffers:
+  // Most renderers can just use the framebuffer/glViewport set up by OpenGLRenderer, but special
+  // effects like sprite distort that read the framebuffer will need to know the details of the
+  // framebuffer setup.
+
+  // the framebuffer that bucket renderers should render to.
+  int render_fb_x = 0;
+  int render_fb_y = 0;
+  int render_fb_w = 0;
+  int render_fb_h = 0;
+  GLuint render_fb = -1;
+
+  // the region within that framebuffer to draw to.
+  int draw_region_w = 0;
+  int draw_region_h = 0;
+  int draw_offset_x = 0;
+  int draw_offset_y = 0;
 };
 
 /*!

@@ -1,12 +1,15 @@
-#include <vector>
 #include "Function.h"
+
+#include <vector>
+
 #include "common/log/log.h"
+#include "common/util/Assert.h"
+#include "common/util/BitUtils.h"
+
 #include "decompiler/Disasm/InstructionMatching.h"
+#include "decompiler/IR2/Form.h"
 #include "decompiler/ObjectFile/LinkedObjectFile.h"
 #include "decompiler/util/DecompilerTypeSystem.h"
-#include "decompiler/IR2/Form.h"
-#include "common/util/BitUtils.h"
-#include "common/util/Assert.h"
 
 namespace decompiler {
 namespace {
@@ -31,8 +34,10 @@ Register get_expected_fpr_backup(int n, int total) {
 
 }  // namespace
 
-Function::Function(int _start_word, int _end_word) : start_word(_start_word), end_word(_end_word) {
+Function::Function(int _start_word, int _end_word, GameVersion version)
+    : start_word(_start_word), end_word(_end_word) {
   ir2.form_pool.reset(new FormPool());
+  ir2.env.version = version;
 }
 
 Function::~Function() {}
@@ -471,7 +476,8 @@ void Function::find_global_function_defs(LinkedObjectFile& file, DecompilerTypeS
           auto& func = file.get_function_at_label(label_id);
           ASSERT(func.guessed_name.empty());
           func.guessed_name.set_as_global(name);
-          dts.add_symbol(name, "function");
+          // TODO - get definition info?
+          dts.add_symbol(name, "function", {});
           ;
           // todo - inform function.
         }

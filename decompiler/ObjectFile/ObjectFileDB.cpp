@@ -6,27 +6,33 @@
  */
 
 #include "ObjectFileDB.h"
+
 #include <algorithm>
-#include <set>
 #include <cstring>
 #include <map>
+#include <set>
+
+#include "LinkedObjectFileCreation.h"
+
 #include "common/link_types.h"
-#include "common/util/dgo_util.h"
+#include "common/log/log.h"
+#include "common/util/BinaryReader.h"
 #include "common/util/BitUtils.h"
-#include "decompiler/data/tpage.h"
-#include "decompiler/data/game_text.h"
+#include "common/util/FileUtil.h"
+#include "common/util/Timer.h"
+#include "common/util/crc32.h"
+#include "common/util/dgo_util.h"
+#include "common/util/json_util.h"
+
+#include "decompiler/Function/BasicBlocks.h"
+#include "decompiler/config.h"
 #include "decompiler/data/StrFileReader.h"
 #include "decompiler/data/dir_tpages.h"
 #include "decompiler/data/game_count.h"
-#include "LinkedObjectFileCreation.h"
-#include "decompiler/config.h"
-#include "common/util/BinaryReader.h"
-#include "common/util/Timer.h"
-#include "common/util/FileUtil.h"
-#include "decompiler/Function/BasicBlocks.h"
-#include "common/log/log.h"
-#include "common/util/json_util.h"
-#include "common/util/crc32.h"
+#include "decompiler/data/game_text.h"
+#include "decompiler/data/tpage.h"
+
+#include "third-party/xdelta3/xdelta3.h"
 
 namespace decompiler {
 namespace {
@@ -107,11 +113,12 @@ const ObjectFileData& ObjectFileDB::lookup_record(const ObjectFileRecord& rec) c
 /*!
  * Build an object file DB for the given list of DGOs.
  */
-ObjectFileDB::ObjectFileDB(const std::vector<std::string>& _dgos,
-                           const std::string& obj_file_name_map_file,
-                           const std::vector<std::string>& object_files,
-                           const std::vector<std::string>& str_files,
-                           const Config& config) {
+ObjectFileDB::ObjectFileDB(const std::vector<fs::path>& _dgos,
+                           const fs::path& obj_file_name_map_file,
+                           const std::vector<fs::path>& object_files,
+                           const std::vector<fs::path>& str_files,
+                           const Config& config)
+    : dts(config.game_version) {
   Timer timer;
 
   lg::info("-Loading types...");
@@ -119,7 +126,8 @@ ObjectFileDB::ObjectFileDB(const std::vector<std::string>& _dgos,
 
   if (!obj_file_name_map_file.empty()) {
     lg::info("-Loading obj name map file...");
-    load_map_file(file_util::read_text_file(file_util::get_file_path({obj_file_name_map_file})));
+    load_map_file(
+        file_util::read_text_file(file_util::get_jak_project_dir() / obj_file_name_map_file));
   } else {
     lg::warn(
         "Not using an obj name map file! The decompiler will automatically generate object file "
@@ -132,14 +140,67 @@ ObjectFileDB::ObjectFileDB(const std::vector<std::string>& _dgos,
     try {
       get_objs_from_dgo(dgo, config);
     } catch (std::runtime_error& e) {
-      lg::warn("Error when reading DGOs: {} on {}", e.what(), dgo);
+      lg::warn("Error when reading DGOs: {} on {}", e.what(), dgo.string());
     }
   }
 
   lg::info("-Loading {} plain object files...", object_files.size());
   for (auto& obj : object_files) {
     auto data = file_util::read_binary_file(obj);
-    auto name = obj_filename_to_name(obj);
+    auto name = obj_filename_to_name(obj.string());
+    if (auto it = config.object_patches.find(name); it != config.object_patches.end()) {
+      // print the file CRC
+      fmt::print("CRC for {} is: 0x{:X}\n", name, crc32(data.data(), data.size()));
+      // write patch file if necessary
+      if (config.write_patches) {
+        // this is the "target" file we want to patch to
+        auto data2 = file_util::read_binary_file(
+            (file_util::get_jak_project_dir() / it->second.target_file).string());
+        // we need to allocate a buffer to store the delta patch
+        // we make it 2x the source file's size because... it seems like a good size?
+        // ideally the delta patch should never be that big.
+        int buf_sz = data.size() * 2;
+        u8* out_buf = (u8*)malloc(buf_sz);
+        size_t out_sz = 0;  // this is where the actual used size of the delta patch will be stored
+        int xd3_res = xd3_encode_memory(data2.data(), data2.size(), data.data(), data.size(),
+                                        out_buf, &out_sz, buf_sz, 0);
+        if (xd3_res) {
+          lg::error("error patching {} with {} (out {}): {}", name, it->second.target_file,
+                    it->second.patch_file, xd3_strerror(xd3_res));
+        } else {
+          std::vector<u8> patch_data(out_sz);
+          memcpy(patch_data.data(), out_buf, patch_data.size());
+          file_util::write_binary_file(
+              (file_util::get_jak_project_dir() / it->second.patch_file).string(),
+              patch_data.data(), patch_data.size());
+        }
+        free(out_buf);
+      }
+
+      // apply patch file if necessary
+      // note that xd3 doesnt really have any safety against bad files so we check crc ourselves
+      if (config.apply_patches && it->second.crc == crc32(data.data(), data.size())) {
+        // this is the delta patch file
+        auto data2 = file_util::read_binary_file(
+            (file_util::get_jak_project_dir() / it->second.patch_file).string());
+        // we need to allocate a buffer to store the patched file
+        // the delta patch isn't gonna be this big but we allocate 2x the source file's size + the
+        // delta patch's size
+        int buf_sz = data.size() * 2 + data2.size();
+        u8* out_buf = (u8*)malloc(buf_sz);
+        size_t out_sz = 0;
+        int xd3_res = xd3_decode_memory(data2.data(), data2.size(), data.data(), data.size(),
+                                        out_buf, &out_sz, buf_sz, 0);
+        if (xd3_res) {
+          lg::error("error patching {} with {} (out {}): {}", name, it->second.target_file,
+                    it->second.patch_file, xd3_strerror(xd3_res));
+        } else {
+          data.resize(out_sz);
+          memcpy(data.data(), out_buf, data.size());
+        }
+        free(out_buf);
+      }
+    }
     add_obj_from_dgo(name, name, data.data(), data.size(), "NO-XGO", config);
   }
 
@@ -147,7 +208,7 @@ ObjectFileDB::ObjectFileDB(const std::vector<std::string>& _dgos,
   for (auto& obj : str_files) {
     StrFileReader reader(obj);
     // name from the file name
-    std::string base_name = obj_filename_to_name(obj);
+    std::string base_name = obj_filename_to_name(obj.string());
     // name from inside the file (this does a lot of sanity checking)
     auto obj_name = reader.get_full_name(base_name + ".STR");
     for (int i = 0; i < reader.chunk_count(); i++) {
@@ -198,7 +259,7 @@ void ObjectFileDB::load_map_file(const std::string& map_data) {
 /*!
  * Load the objects stored in the given DGO into the ObjectFileDB
  */
-void ObjectFileDB::get_objs_from_dgo(const std::string& filename, const Config& config) {
+void ObjectFileDB::get_objs_from_dgo(const fs::path& filename, const Config& config) {
   auto dgo_data = file_util::read_binary_file(filename);
   stats.total_dgo_bytes += dgo_data.size();
 
@@ -209,7 +270,7 @@ void ObjectFileDB::get_objs_from_dgo(const std::string& filename, const Config& 
   BinaryReader reader(dgo_data);
   auto header = reader.read<DgoHeader>();
 
-  auto dgo_base_name = file_util::base_name(filename);
+  auto dgo_base_name = filename.filename().string();
   ASSERT(header.name == dgo_base_name);
   assert_string_empty_after(header.name, 60);
 
@@ -220,7 +281,8 @@ void ObjectFileDB::get_objs_from_dgo(const std::string& filename, const Config& 
     if (i == header.object_count - 1) {
       if (reader.bytes_left() == obj_header.object_count - 0x30) {
         if (config.is_pal) {
-          lg::warn("Skipping {} because it is a broken PAL object", obj_header.name);
+          lg::warn("Skipping {} in {} because it is a broken PAL object", obj_header.name,
+                   dgo_base_name);
           reader.ffwd(reader.bytes_left());
           continue;
         } else {
@@ -455,7 +517,7 @@ void ObjectFileDB::process_labels() {
 /*!
  * Dump object files and their linking data to text files for debugging
  */
-void ObjectFileDB::write_object_file_words(const std::string& output_dir,
+void ObjectFileDB::write_object_file_words(const fs::path& output_dir,
                                            bool dump_data,
                                            bool dump_code) {
   lg::info("- Writing object file dumps (code? {} data? {})...", dump_code, dump_data);
@@ -467,7 +529,7 @@ void ObjectFileDB::write_object_file_words(const std::string& output_dir,
     if ((obj.linked_data.segments == 3 && dump_code) ||
         (obj.linked_data.segments != 3 && dump_data)) {
       auto file_text = obj.linked_data.print_words();
-      auto file_name = file_util::combine_path(output_dir, obj.to_unique_name() + ".txt");
+      auto file_name = output_dir / (obj.to_unique_name() + ".txt");
       total_bytes += file_text.size();
       file_util::write_text_file(file_name, file_text);
       total_files++;
@@ -484,7 +546,7 @@ void ObjectFileDB::write_object_file_words(const std::string& output_dir,
 /*!
  * Dump disassembly for object files containing code.  Data zones will also be dumped.
  */
-void ObjectFileDB::write_disassembly(const std::string& output_dir,
+void ObjectFileDB::write_disassembly(const fs::path& output_dir,
                                      bool disassemble_data,
                                      bool disassemble_code,
                                      bool print_hex) {
@@ -498,7 +560,7 @@ void ObjectFileDB::write_disassembly(const std::string& output_dir,
     if ((obj.obj_version == 3 && disassemble_code) || (obj.obj_version != 3 && disassemble_data)) {
       auto file_text = obj.linked_data.print_disassembly(print_hex);
       asm_functions += obj.linked_data.print_asm_function_disassembly(obj.to_unique_name());
-      auto file_name = file_util::combine_path(output_dir, obj.to_unique_name() + ".asm");
+      auto file_name = output_dir / (obj.to_unique_name() + ".asm");
 
       total_bytes += file_text.size();
       file_util::write_text_file(file_name, file_text);
@@ -508,8 +570,7 @@ void ObjectFileDB::write_disassembly(const std::string& output_dir,
 
   total_bytes += asm_functions.size();
   total_files++;
-  file_util::write_text_file(file_util::combine_path(output_dir, "asm_functions.func"),
-                             asm_functions);
+  file_util::write_text_file(output_dir / "asm_functions.func", asm_functions);
 
   lg::info("Wrote functions dumps:");
   lg::info(" Total {} files", total_files);
@@ -529,7 +590,7 @@ void ObjectFileDB::find_code(const Config& config) {
   for_each_obj([&](ObjectFileData& obj) {
     //      printf("fc %s\n", obj.record.to_unique_name().c_str());
     obj.linked_data.find_code();
-    obj.linked_data.find_functions();
+    obj.linked_data.find_functions(config.game_version);
     obj.linked_data.disassemble_functions();
 
     if (config.game_version == GameVersion::Jak1 || obj.to_unique_name() != "effect-control-v0") {
@@ -563,7 +624,7 @@ void ObjectFileDB::find_code(const Config& config) {
  * Finds and writes all scripts into a file named all_scripts.lisp.
  * Doesn't change any state in ObjectFileDB.
  */
-void ObjectFileDB::find_and_write_scripts(const std::string& output_dir) {
+void ObjectFileDB::find_and_write_scripts(const fs::path& output_dir) {
   lg::info("- Finding scripts in object files...");
   Timer timer;
   std::string all_scripts;
@@ -578,14 +639,14 @@ void ObjectFileDB::find_and_write_scripts(const std::string& output_dir) {
     }
   });
 
-  auto file_name = file_util::combine_path(output_dir, "all_scripts.lisp");
+  auto file_name = output_dir / "all_scripts.lisp";
   file_util::write_text_file(file_name, all_scripts);
 
   lg::info("Found scripts:");
   lg::info(" Total {:.3f} ms\n", timer.getMs());
 }
 
-std::string ObjectFileDB::process_tpages(TextureDB& tex_db) {
+std::string ObjectFileDB::process_tpages(TextureDB& tex_db, const fs::path& output_path) {
   lg::info("- Finding textures in tpages...");
   std::string tpage_string = "tpage-";
   int total = 0, success = 0;
@@ -596,7 +657,7 @@ std::string ObjectFileDB::process_tpages(TextureDB& tex_db) {
   std::string result;
   for_each_obj([&](ObjectFileData& data) {
     if (data.name_in_dgo.substr(0, tpage_string.length()) == tpage_string) {
-      auto statistics = process_tpage(data, tex_db);
+      auto statistics = process_tpage(data, tex_db, output_path);
       total += statistics.total_textures;
       success += statistics.successful_textures;
       total_px += statistics.num_px;
@@ -646,7 +707,7 @@ std::string ObjectFileDB::process_game_text_files(const Config& cfg) {
   if (text_by_language_by_id.empty()) {
     return {};
   }
-  return write_game_text(cfg, text_by_language_by_id);
+  return write_game_text(cfg.text_version, text_by_language_by_id);
 }
 
 std::string ObjectFileDB::process_game_count_file() {
@@ -735,16 +796,16 @@ void ObjectFileDB::extract_art_info() {
 /*!
  * Write out the art group information.
  */
-void ObjectFileDB::dump_art_info(const std::string& output_dir) {
+void ObjectFileDB::dump_art_info(const fs::path& output_dir) {
   lg::info("Writing art group info...");
   Timer timer;
 
   if (!dts.art_group_info.empty()) {
-    file_util::create_dir_if_needed(file_util::combine_path(output_dir, "import"));
+    file_util::create_dir_if_needed(output_dir / "import");
   }
   for (const auto& [ag_name, info] : dts.art_group_info) {
     auto ag_fname = ag_name + ".gc";
-    auto filename = file_util::get_file_path({output_dir, "import", ag_fname});
+    auto filename = output_dir / "import" / ag_fname;
     std::string result = ";;-*-Lisp-*-\n";
     result += "(in-package goal)\n\n";
     result += fmt::format(";; {} - art group OpenGOAL import file\n", ag_fname);
@@ -759,9 +820,9 @@ void ObjectFileDB::dump_art_info(const std::string& output_dir) {
   lg::info("Written art group info: in {:.2f} ms\n", timer.getMs());
 }
 
-void ObjectFileDB::dump_raw_objects(const std::string& output_dir) {
+void ObjectFileDB::dump_raw_objects(const fs::path& output_dir) {
   for_each_obj([&](ObjectFileData& data) {
-    auto dest = output_dir + "/" + data.to_unique_name();
+    auto dest = output_dir / data.to_unique_name();
     if (data.obj_version != 3) {
       dest += ".go";
     }

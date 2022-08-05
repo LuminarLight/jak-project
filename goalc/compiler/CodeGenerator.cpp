@@ -5,17 +5,21 @@
  * Currently owns the logic for emitting the function prologues/epilogues and stack spill ops.
  */
 
-#include <unordered_set>
-#include "goalc/debugger/DebugInfo.h"
-#include "third-party/fmt/core.h"
 #include "CodeGenerator.h"
-#include "goalc/emitter/IGen.h"
+
+#include <unordered_set>
+
 #include "IR.h"
+
+#include "goalc/debugger/DebugInfo.h"
+#include "goalc/emitter/IGen.h"
+
+#include "third-party/fmt/core.h"
 
 using namespace emitter;
 
-CodeGenerator::CodeGenerator(FileEnv* env, DebugInfo* debug_info)
-    : m_fe(env), m_debug_info(debug_info) {}
+CodeGenerator::CodeGenerator(FileEnv* env, DebugInfo* debug_info, GameVersion version)
+    : m_gen(version), m_fe(env), m_debug_info(debug_info) {}
 
 /*!
  * Generate an object file.

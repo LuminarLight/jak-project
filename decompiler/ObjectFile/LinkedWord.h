@@ -1,13 +1,22 @@
 #pragma once
 
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 /*!
  * @file LinkedWord.h
  * A word (4 bytes), possibly with some linking info.
  */
 
 #include <cstdint>
-#include <string>
 #include <cstring>
+#include <string>
+
 #include "common/common_types.h"
 #include "common/util/Assert.h"
 
@@ -151,3 +160,9 @@ class LinkedWord {
 };
 
 }  // namespace decompiler
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#elif defined(__clang__)
+#pragma clang diagnostic pop
+#endif

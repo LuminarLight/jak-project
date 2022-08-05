@@ -3,29 +3,32 @@
  * This runs the IR2 analysis passes.
  */
 
-#include "common/link_types.h"
 #include "ObjectFileDB.h"
+
+#include "common/goos/PrettyPrinter.h"
+#include "common/link_types.h"
 #include "common/log/log.h"
-#include "common/util/Timer.h"
 #include "common/util/FileUtil.h"
-#include "decompiler/analysis/type_analysis.h"
-#include "decompiler/analysis/reg_usage.h"
+#include "common/util/Timer.h"
+
+#include "decompiler/IR2/Form.h"
+#include "decompiler/analysis/analyze_inspect_method.h"
+#include "decompiler/analysis/cfg_builder.h"
+#include "decompiler/analysis/expression_build.h"
+#include "decompiler/analysis/final_output.h"
+#include "decompiler/analysis/find_defpartgroup.h"
+#include "decompiler/analysis/find_defstates.h"
+#include "decompiler/analysis/find_skelgroups.h"
+#include "decompiler/analysis/inline_asm_rewrite.h"
 #include "decompiler/analysis/insert_lets.h"
 #include "decompiler/analysis/label_types.h"
-#include "decompiler/analysis/find_defstates.h"
-#include "decompiler/analysis/variable_naming.h"
-#include "decompiler/analysis/cfg_builder.h"
-#include "decompiler/analysis/final_output.h"
-#include "decompiler/analysis/expression_build.h"
-#include "decompiler/analysis/inline_asm_rewrite.h"
+#include "decompiler/analysis/mips2c.h"
+#include "decompiler/analysis/reg_usage.h"
 #include "decompiler/analysis/stack_spill.h"
 #include "decompiler/analysis/static_refs.h"
 #include "decompiler/analysis/symbol_def_map.h"
-#include "decompiler/analysis/find_skelgroups.h"
-#include "decompiler/analysis/find_defpartgroup.h"
-#include "common/goos/PrettyPrinter.h"
-#include "decompiler/IR2/Form.h"
-#include "decompiler/analysis/mips2c.h"
+#include "decompiler/analysis/type_analysis.h"
+#include "decompiler/analysis/variable_naming.h"
 
 namespace decompiler {
 
@@ -35,7 +38,7 @@ namespace decompiler {
  * functions, but nothing else.
  */
 void ObjectFileDB::analyze_functions_ir2(
-    const std::string& output_dir,
+    const fs::path& output_dir,
     const Config& config,
     const std::unordered_set<std::string>& skip_functions,
     const std::unordered_map<std::string, std::unordered_set<std::string>>& skip_states) {
@@ -86,46 +89,51 @@ void ObjectFileDB::analyze_functions_ir2(
 
     ir2_symbol_definition_map(data);
 
+    // TODO - insert the game_name into the import line automatically
+    // instead of `goal_src/jak1/import/something.gc`
+    // just `import/something.gc`
+    //
+    // Can be relative to the root of the source directory
     const auto& imports_it = config.import_deps_by_file.find(data.to_unique_name());
     std::vector<std::string> imports;
     if (imports_it != config.import_deps_by_file.end()) {
       imports = imports_it->second;
     }
 
-    if (!output_dir.empty()) {
+    if (!output_dir.string().empty()) {
       ir2_write_results(output_dir, config, imports, data);
     } else {
-      if (!skip_functions.empty()) {
-        data.output_with_skips = ir2_final_out(data, imports, skip_functions);
-      }
+      data.output_with_skips = ir2_final_out(data, imports, skip_functions);
       data.full_output = ir2_final_out(data, imports, {});
     }
 
-    for_each_function_def_order_in_obj(data, [&](Function& f, int) { f.ir2 = {}; });
+    if (!config.generate_all_types) {
+      // this frees ir2 memory, but means future passes can't look back on this function.
+      for_each_function_def_order_in_obj(data, [&](Function& f, int) { f.ir2 = {}; });
+    } else {
+      for_each_function_def_order_in_obj(data, [&](Function& f, int seg) {
+        if (seg == TOP_LEVEL_SEGMENT) {
+          return;  // keep top-levels
+        }
+        if (f.guessed_name.kind == FunctionName::FunctionKind::METHOD &&
+            f.guessed_name.method_id == GOAL_INSPECT_METHOD) {
+          return;  // keep inspects
+        }
+        // otherwise free memory
+        f.ir2 = {};
+      });
+    }
 
     fmt::print("Done in {:.2f}ms\n", file_timer.getMs());
   });
 
-  int total = stats.let.total();
-  lg::info("LET REWRITE STATS: {} total", total);
-  lg::info("  dotimes: {}", stats.let.dotimes);
-  lg::info("  countdown: {}", stats.let.countdown);
-  lg::info("  abs: {}", stats.let.abs);
-  lg::info("  abs2: {}", stats.let.abs2);
-  lg::info("  ja: {}", stats.let.ja);
-  lg::info("  set_vector: {}", stats.let.set_vector);
-  lg::info("  set_vector2: {}", stats.let.set_vector2);
-  lg::info("  case_no_else: {}", stats.let.case_no_else);
-  lg::info("  case_with_else: {}", stats.let.case_with_else);
-  lg::info("  unused: {}", stats.let.unused);
-  lg::info("  send_event: {}", stats.let.send_event);
+  lg::info("{}", stats.let.print());
 
   if (config.generate_symbol_definition_map) {
     lg::info("Generating symbol definition map...");
     map_builder.build_map();
     std::string result = map_builder.convert_to_json();
-    auto file_name = file_util::combine_path(output_dir, "symbol_map.json");
-    file_util::write_text_file(file_name, result);
+    file_util::write_text_file(output_dir / "symbol_map.json", result);
   }
 }
 
@@ -290,6 +298,63 @@ void ObjectFileDB::ir2_top_level_pass(const Config& config) {
   lg::info("{:4d} logins  {:.2f}%\n", total_top_levels, 100.f * total_top_levels / total_functions);
 }
 
+void ObjectFileDB::ir2_analyze_all_types(const fs::path& output_file,
+                                         const std::optional<std::string>& previous_game_types,
+                                         const std::unordered_set<std::string>& bad_types) {
+  struct PerObject {
+    std::string object_name;
+    std::vector<std::string> type_defs;
+    std::string symbol_defs;
+  };
+
+  std::vector<PerObject> per_object;
+
+  DecompilerTypeSystem previous_game_ts(GameVersion::Jak1);  // version here doesn't matter.
+  if (previous_game_types) {
+    previous_game_ts.parse_type_defs({*previous_game_types});
+  }
+
+  std::unordered_set<std::string> already_seen;
+  TypeInspectorCache ti_cache;
+
+  for_each_obj([&](ObjectFileData& data) {
+    if (data.obj_version != 3) {
+      return;
+    }
+    auto& object_result = per_object.emplace_back();
+    object_result.object_name = data.to_unique_name();
+
+    for_each_function_def_order_in_obj(data, [&](Function& f, int seg) {
+      if (seg == TOP_LEVEL_SEGMENT) {
+        object_result.symbol_defs += inspect_top_level_symbol_defines(
+            already_seen, f, data.linked_data, dts, previous_game_ts);
+      } else {
+        if (f.is_inspect_method && bad_types.find(f.guessed_name.type_name) == bad_types.end()) {
+          object_result.type_defs.push_back(inspect_inspect_method(
+              f, f.guessed_name.type_name, dts, data.linked_data, previous_game_ts.ts, ti_cache));
+        }
+      }
+    });
+  });
+
+  std::string result;
+  result += ";; All Types\n\n";
+
+  for (auto& obj : per_object) {
+    result += fmt::format(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n");
+    result += fmt::format(";; {:30s} ;;\n", obj.object_name);
+    result += fmt::format(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n\n");
+    for (auto& t : obj.type_defs) {
+      result += t;
+      result += "\n";
+    }
+    result += obj.symbol_defs;
+    result += "\n";
+  }
+
+  file_util::write_text_file(output_file, result);
+}
+
 /*!
  * Initial Function Analysis Pass to build the control flow graph.
  * - Find basic blocks
@@ -332,7 +397,7 @@ void ObjectFileDB::ir2_basic_block_pass(int seg, const Config& config, ObjectFil
         asm_br_blocks = asm_lookup->second;
       }
 
-      func.cfg = build_cfg(data.linked_data, seg, func, hack, asm_br_blocks);
+      func.cfg = build_cfg(data.linked_data, seg, func, hack, asm_br_blocks, config.game_version);
       if (!func.cfg->is_fully_resolved()) {
         lg::warn("Function {} from {} failed to build control flow graph!", func.name(),
                  data.to_unique_name());
@@ -558,23 +623,6 @@ void ObjectFileDB::ir2_cfg_build_pass(int seg, ObjectFileData& data) {
   });
 }
 
-// void ObjectFileDB::ir2_store_current_forms(int seg) {
-//  Timer timer;
-//  int total = 0;
-//
-//  for_each_function_in_seg(seg, [&](Function& func, ObjectFileData& data) {
-//    (void)data;
-//
-//    if (func.ir2.top_form) {
-//      total++;
-//      func.ir2.debug_form_string =
-//          pretty_print::to_string(func.ir2.top_form->to_form(func.ir2.env));
-//    }
-//  });
-//
-//  lg::info("Stored debug forms for {} functions in {:.2f} ms\n", total, timer.getMs());
-//}
-//
 void ObjectFileDB::ir2_build_expressions(int seg, const Config& config, ObjectFileData& data) {
   for_each_function_in_seg_in_obj(seg, data, [&](Function& func) {
     (void)data;
@@ -640,25 +688,28 @@ void ObjectFileDB::ir2_insert_anonymous_functions(int seg, ObjectFileData& data)
   });
 }
 
-void ObjectFileDB::ir2_write_results(const std::string& output_dir,
+void ObjectFileDB::ir2_write_results(const fs::path& output_dir,
                                      const Config& config,
                                      const std::vector<std::string>& imports,
                                      ObjectFileData& obj) {
   if (obj.linked_data.has_any_functions()) {
-    // todo
-
     auto file_text = ir2_to_file(obj, config);
-    auto file_name = file_util::combine_path(output_dir, obj.to_unique_name() + "_ir2.asm");
+    auto file_name = output_dir / (obj.to_unique_name() + "_ir2.asm");
     file_util::write_text_file(file_name, file_text);
 
     auto final = ir2_final_out(obj, imports, {});
-    auto final_name = file_util::combine_path(output_dir, obj.to_unique_name() + "_disasm.gc");
+    auto final_name = output_dir / (obj.to_unique_name() + "_disasm.gc");
     file_util::write_text_file(final_name, final);
   }
 }
 
 std::string ObjectFileDB::ir2_to_file(ObjectFileData& data, const Config& config) {
   std::string result;
+
+  auto all_types_path = file_util::get_file_path({config.all_types_file});
+  auto game_version = game_version_names[config.game_version];
+
+  result += fmt::format("; ALL_TYPES={}={}\n\n", game_version, all_types_path);
 
   const char* segment_names[] = {"main segment", "debug segment", "top-level segment"};
   ASSERT(data.linked_data.segments <= 3);

@@ -7,16 +7,16 @@
  * access types, and reverse type lookups.
  */
 
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <string>
-#include <memory>
-#include <stdexcept>
-#include <optional>
 
-#include "TypeSpec.h"
 #include "Type.h"
+#include "TypeSpec.h"
 
 struct TypeFlags {
   union {
@@ -206,7 +206,7 @@ class TypeSystem {
                         bool skip_in_static_decomp = false,
                         double score = 0.0);
 
-  void add_builtin_types();
+  void add_builtin_types(GameVersion version);
 
   std::string print_all_type_information() const;
   bool typecheck_and_throw(const TypeSpec& expected,

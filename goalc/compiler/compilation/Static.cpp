@@ -4,9 +4,11 @@
  * This is the front end for things in StaticObject.cpp
  */
 
-#include "goalc/compiler/Compiler.h"
-#include "third-party/fmt/core.h"
 #include "common/goos/ParseHelpers.h"
+
+#include "goalc/compiler/Compiler.h"
+
+#include "third-party/fmt/core.h"
 
 /*!
  * Compile the fields of a static structure into the given StaticStructure*, applying an offset.
@@ -137,7 +139,8 @@ void Compiler::compile_static_structure_inline(const goos::Object& form,
                              deref_info.sign_extend);
       }
 
-    } else if (is_structure(field_info.type) || is_pair(field_info.type)) {
+    } else if (is_structure(field_info.type) || is_pair(field_info.type) ||
+               is_symbol(field_info.type)) {
       if (is_pair(field_info.type)) {
         ASSERT(!field_info.field.is_inline());
       }
@@ -844,7 +847,12 @@ void Compiler::fill_static_array_inline(const goos::Object& form,
     if (is_integer(content_type)) {
       typecheck(form, TypeSpec("integer"), sr.typespec());
     } else {
-      typecheck(form, content_type, sr.typespec());
+      if (sr.is_symbol() && sr.symbol_name() == "#f") {
+        // allow #f for any structure.
+        typecheck(form, TypeSpec("structure"), content_type);
+      } else {
+        typecheck(form, content_type, sr.typespec());
+      }
     }
     if (sr.is_symbol()) {
       ASSERT(deref_info.stride == 4);

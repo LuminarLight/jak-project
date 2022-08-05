@@ -1,8 +1,10 @@
 #include "Shader.h"
-#include "common/util/FileUtil.h"
+
 #include "common/log/log.h"
-#include "game/graphics/pipelines/opengl.h"
 #include "common/util/Assert.h"
+#include "common/util/FileUtil.h"
+
+#include "game/graphics/pipelines/opengl.h"
 
 Shader::Shader(const std::string& shader_name) {
   // read the shader source
@@ -85,6 +87,10 @@ ShaderLibrary::ShaderLibrary() {
   at(ShaderId::SHADOW) = {"shadow"};
   at(ShaderId::COLLISION) = {"collision"};
   at(ShaderId::MERC2) = {"merc2"};
+  at(ShaderId::SPRITE_DISTORT) = {"sprite_distort"};
+  at(ShaderId::SPRITE_DISTORT_INSTANCED) = {"sprite_distort_instanced"};
+  at(ShaderId::POST_PROCESSING) = {"post_processing"};
+  at(ShaderId::DEPTH_CUE) = {"depth_cue"};
 
   for (auto& shader : m_shaders) {
     ASSERT_MSG(shader.okay(), "Shader compiled");

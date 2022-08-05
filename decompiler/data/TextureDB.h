@@ -1,10 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <unordered_map>
 #include <set>
 #include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "common/common_types.h"
+#include "common/util/FileUtil.h"
 
 namespace decompiler {
 struct TextureDB {
@@ -28,6 +30,6 @@ struct TextureDB {
                    const std::string& tpage_name,
                    const std::vector<std::string>& level_names);
 
-  void replace_textures(const std::string& path);
+  void replace_textures(const fs::path& path);
 };
 }  // namespace decompiler

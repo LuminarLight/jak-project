@@ -1,18 +1,25 @@
-#include <cstring>
-#include <cstdio>
-#include "game/sound/sndshim.h"
 #include "srpc.h"
-#include "game/sce/iop.h"
+
+#include <cstdio>
+#include <cstring>
+
+#include "iso.h"
+#include "iso_api.h"
+#include "ramdisk.h"
+#include "sbank.h"
+
+#include "common/util/Assert.h"
+#include "common/versions.h"
+
+#include "game/common/game_common_types.h"
 #include "game/common/loader_rpc_types.h"
 #include "game/common/player_rpc_types.h"
-#include "game/common/game_common_types.h"
-#include "common/versions.h"
-#include "sbank.h"
-#include "iso_api.h"
-#include "common/util/Assert.h"
+#include "game/graphics/gfx.h"
+#include "game/runtime.h"
+#include "game/sce/iop.h"
+#include "game/sound/sndshim.h"
+
 #include "third-party/fmt/core.h"
-#include "iso.h"
-#include "ramdisk.h"
 
 using namespace iop;
 
@@ -28,6 +35,9 @@ s32 gMusicTweak = 0x80;
 s32 gMusicPause = 0;
 u32 gFreeMem = 0;
 u32 gFrameNum = 0;
+
+// added
+u32 gMusicFadeHack = 0;
 
 static SoundIopInfo info;
 
@@ -56,7 +66,8 @@ u32 Thread_Player() {
   CpuDisableIntr();
   sceSifInitRpc(0);
   sceSifSetRpcQueue(&dq, GetThreadId());
-  sceSifRegisterRpc(&serve, PLAYER_RPC_ID, RPC_Player, gPlayerBuf, nullptr, nullptr, &dq);
+  sceSifRegisterRpc(&serve, PLAYER_RPC_ID[g_game_version], RPC_Player, gPlayerBuf, nullptr, nullptr,
+                    &dq);
   CpuEnableIntr();
   sceSifRpcLoop(&dq);
   return 0;
@@ -72,7 +83,8 @@ u32 Thread_Loader() {
   CpuDisableIntr();
   sceSifInitRpc(0);
   sceSifSetRpcQueue(&dq, GetThreadId());
-  sceSifRegisterRpc(&serve, LOADER_RPC_ID, RPC_Loader, gLoaderBuf, nullptr, nullptr, &dq);
+  sceSifRegisterRpc(&serve, LOADER_RPC_ID[g_game_version], RPC_Loader, gLoaderBuf, nullptr, nullptr,
+                    &dq);
   CpuEnableIntr();
   sceSifRpcLoop(&dq);
   return 0;
@@ -432,14 +444,14 @@ s32 VBlank_Handler() {
     return 1;
 
   if (gMusicFadeDir > 0) {
-    gMusicFade += 1024;
-    if (gMusicFade > 0x10000) {
+    gMusicFade += (0x10000 / 64);
+    if (gMusicFade > 0x10000 || (gMusicFadeHack & 1)) {
       gMusicFade = 0x10000;
       gMusicFadeDir = 0;
     }
   } else if (gMusicFadeDir < 0) {
-    gMusicFade -= 512;
-    if (gMusicFade < 0) {
+    gMusicFade -= (0x10000 / 128);
+    if (gMusicFade < 0 || (gMusicFadeHack & 2)) {
       gMusicFade = 0;
       gMusicFadeDir = 0;
     }
@@ -451,7 +463,7 @@ s32 VBlank_Handler() {
   gFrameNum++;
 
   if (gFakeVAGClockRunning && !gFakeVAGClockPaused) {
-    gFakeVAGClock += 17;
+    gFakeVAGClock += (s32)(1024 / Gfx::g_global_settings.target_fps);
   }
 
   // We don't need this, our DMA's are instant

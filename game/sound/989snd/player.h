@@ -1,21 +1,25 @@
 // Copyright: 2021 - 2022, Ziemas
 // SPDX-License-Identifier: ISC
 #pragma once
-#include "ame_handler.h"
-#include "game/sound/989snd/vagvoice.h"
-#include "third-party/cubeb/cubeb/include/cubeb/cubeb.h"
-#include "midi_handler.h"
-#include "sound_handler.h"
-#include "loader.h"
-#include "../common/synth.h"
-#include "common/common_types.h"
-#include "handle_allocator.h"
-#include <filesystem>
-#include <unordered_map>
+
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <vector>
+
+#include "ame_handler.h"
+#include "handle_allocator.h"
+#include "loader.h"
+#include "midi_handler.h"
+#include "sound_handler.h"
+
+#include "common/common_types.h"
+#include "common/util/FileUtil.h"
+
+#include "../common/synth.h"
+#include "game/sound/989snd/vagvoice.h"
+
+#include "third-party/cubeb/cubeb/include/cubeb/cubeb.h"
 
 namespace snd {
 
@@ -29,7 +33,7 @@ class player {
   // player(player&& other) noexcept = default;
   // player& operator=(player&& other) noexcept = default;
 
-  u32 load_bank(std::filesystem::path& path, size_t offset);
+  u32 load_bank(fs::path& path, size_t offset);
 
   u32 play_sound(u32 bank, u32 sound, s32 vol, s32 pan, s32 pm, s32 pb);
   void set_midi_reg(u32 sound_id, u8 reg, u8 value);

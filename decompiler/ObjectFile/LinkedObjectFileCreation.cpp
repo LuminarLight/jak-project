@@ -4,13 +4,16 @@
  * This implements a decoder for the GOAL linking format.
  */
 
-#include <cstring>
 #include "LinkedObjectFileCreation.h"
+
+#include <cstring>
+
+#include "common/link_types.h"
+#include "common/util/Assert.h"
+#include "common/util/BitUtils.h"
+
 #include "decompiler/config.h"
 #include "decompiler/util/DecompilerTypeSystem.h"
-#include "common/link_types.h"
-#include "common/util/BitUtils.h"
-#include "common/util/Assert.h"
 
 namespace decompiler {
 // There are three link versions:
@@ -122,7 +125,7 @@ static uint32_t c_symlink2(LinkedObjectFile& f,
           word_kind = LinkedWord::EMPTY_PTR;
           break;
         case SymbolLinkKind::TYPE:
-          dts.add_symbol(name, "type");
+          dts.add_symbol(name, "type", {});
           word_kind = LinkedWord::TYPE_PTR;
           break;
         default:
@@ -180,7 +183,7 @@ static uint32_t c_symlink3(LinkedObjectFile& f,
           word_kind = LinkedWord::EMPTY_PTR;
           break;
         case SymbolLinkKind::TYPE:
-          dts.add_symbol(name, "type");
+          dts.add_symbol(name, "type", {});
           word_kind = LinkedWord::TYPE_PTR;
           break;
         default:

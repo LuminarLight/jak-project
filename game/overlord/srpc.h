@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ssound.h"
+
 #include "common/common_types.h"
 
 void srpc_init_globals();
@@ -170,3 +171,6 @@ u32 Thread_Loader();
 u32 Thread_Player();
 
 s32 VBlank_Handler();
+
+// added for PC port
+extern u32 gMusicFadeHack;

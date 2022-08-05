@@ -4,16 +4,20 @@
  * Supports loading a file directly to the EE, or loading chunks of a chunked file.
  */
 
-#include <cstring>
 #include "stream.h"
-#include "game/sce/iop.h"
-#include "game/common/str_rpc_types.h"
-#include "game/common/play_rpc_types.h"
-#include "game/overlord/isocommon.h"
-#include "game/overlord/iso_api.h"
-#include "game/overlord/iso.h"
-#include "game/overlord/srpc.h"
+
+#include <cstring>
+
 #include "common/util/Assert.h"
+
+#include "game/common/play_rpc_types.h"
+#include "game/common/str_rpc_types.h"
+#include "game/overlord/iso.h"
+#include "game/overlord/iso_api.h"
+#include "game/overlord/isocommon.h"
+#include "game/overlord/srpc.h"
+#include "game/runtime.h"
+#include "game/sce/iop.h"
 
 using namespace iop;
 
@@ -58,7 +62,7 @@ u32 STRThread() {
   CpuDisableIntr();
   sceSifInitRpc(0);
   sceSifSetRpcQueue(&dq, GetThreadId());
-  sceSifRegisterRpc(&serve, STR_RPC_ID, RPC_STR, &sSTRBuf, nullptr, nullptr, &dq);
+  sceSifRegisterRpc(&serve, STR_RPC_ID[g_game_version], RPC_STR, &sSTRBuf, nullptr, nullptr, &dq);
   CpuEnableIntr();
   sceSifRpcLoop(&dq);
   return 0;
@@ -71,7 +75,7 @@ u32 PLAYThread() {
   CpuDisableIntr();
   sceSifInitRpc(0);
   sceSifSetRpcQueue(&dq, GetThreadId());
-  sceSifRegisterRpc(&serve, PLAY_RPC_ID, RPC_PLAY, sPLAYBuf, nullptr, nullptr, &dq);
+  sceSifRegisterRpc(&serve, PLAY_RPC_ID[g_game_version], RPC_PLAY, sPLAYBuf, nullptr, nullptr, &dq);
   CpuEnableIntr();
   sceSifRpcLoop(&dq);
   return 0;
