@@ -344,7 +344,8 @@ TexturePage read_texture_page(ObjectFileData& data,
   tpage.info = read_file_info(data, words, label_to_word_offset(tpage.info_label, true));
   ASSERT(tpage.info.file_type == "texture-page");
   // Game has no real problems with tpage version 6.
-  ASSERT(tpage.info.major_version == versions::jak1::TX_PAGE_VERSION || tpage.info.major_version == 6);
+  ASSERT(tpage.info.major_version == versions::jak1::TX_PAGE_VERSION ||
+         tpage.info.major_version == 6);
   ASSERT(tpage.info.minor_version == 0);
   ASSERT(tpage.info.maya_file_name == "Unknown");
   ASSERT(tpage.info.mdb_file_name == 0);
