@@ -1889,7 +1889,7 @@ void process_draw_mode(std::vector<TFragDraw>& all_draws,
           update_mode_from_test1(val, mode);
           break;
         case GsRegisterAddress::TEX0_1:
-          ASSERT(val == 0);
+          //ASSERT(val == 0); // Assert is overkill here.
           break;
         case GsRegisterAddress::TEX1_1:
           ASSERT(val == 0x120);  // some flag
