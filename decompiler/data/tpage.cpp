@@ -346,7 +346,7 @@ TexturePage read_texture_page(ObjectFileData& data,
   ASSERT(tpage.info.file_type == "texture-page");
   switch (data.linked_data.version) {
     case GameVersion::Jak1:
-      ASSERT(tpage.info.major_version == versions::jak1::TX_PAGE_VERSION);
+      ASSERT(tpage.info.major_version >= versions::jak1::TX_PAGE_VERSION - 1);
       break;
     case GameVersion::Jak2:
       ASSERT(tpage.info.major_version == versions::jak2::TX_PAGE_VERSION);
