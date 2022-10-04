@@ -1,3 +1,30 @@
+# "Yosemite Two" Branch
+
+This branch contains modifications to physically integrate Yosemite into the base game's world. The aim is to make it look natural.
+More info about the level: https://jadtech.miraheze.org/wiki/Research:Yosemite
+
+### Usage
+
+Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and put it into the DGO folder of the incoming iso data. Then do everything as you would do with normal OpenGOAL. If you did everything good, then game will have Yosemite accessible from Volcanic Crater (exact access location is in research phase).
+
+### Progress so far
+- none
+
+### Plans/Todo
+- An fr3 file should be generated from YOS.DGO as well.
+- Game should no longer refuse to load a level if stuff in it has versions that Yosemite's stuff has.
+- Define _yosemite_ level properly.
+- Do some  changes to actor birthing(?) to make Yosemite not crash the game. To make things easier, we could just skip actor birthing for Yosemite somehow, and place our own actors.
+- Add continue-point(s) for Yosemite.
+- Fix the broken actors (racer, water-vol) somehow, or replace them with our own actors.
+- Substitute the missing actors.
+- Add progress menu entry for the level.
+- Add tasks. Need to think more about this, and also consider the technical limitations. A power cell on top of the mountain would probably be easy.
+- Add the red eco vent switch.
+- Create a custom level that we can use for tidying up holes in Yosemite, and helping it connect to the world. This custom level can also be used for placing actors.
+
+---
+
 <p align="center">
   <img width="500" height="100%" src="./docs/img/logo-text-colored-new.png">
 </p>
