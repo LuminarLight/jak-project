@@ -1872,6 +1872,48 @@
     )
   )
 
+(define yosemite
+  (new 'static 'level-load-info
+    :index 25
+    :name 'yosemite
+    :visname 'yosemite-vis
+    :nickname 'yos
+    :packages '(yosemite)
+    :sound-banks '()
+    :music-bank 'village1
+    :ambient-sounds '()
+    :mood '*village1-mood*
+    :mood-func 'update-mood-village1
+    :ocean #f
+    :sky #t
+    :continues '((new 'static 'continue-point
+        :name "yosemite-start"
+        :level 'yosemite
+        :trans (new 'static 'vector :x 4498122.752 :y 201115.648 :z -15525967.872 :w 1.0)
+        :quat (new 'static 'quaternion :y 0.9999 :w 0.005)
+        :camera-trans (new 'static 'vector :x 4469439.5 :y 207701.2 :z -14003077.0 :w 1.0)
+        :camera-rot (new 'static 'array float 9 -0.9996 0.0 0.0268 -0.0032 0.9925 -0.1216 -0.0266 -0.1216 -0.9922)
+        :load-commands '()
+        :vis-nick #f
+        :lev0 'yosemite
+        :disp0 'display
+        :lev1 #f
+        :disp1 #f
+        )
+      )
+    :tasks '()
+    :priority 100
+    :load-commands '()
+    :alt-load-commands '()
+    :bsp-mask #xffffffffffffffff
+    :bsphere (new 'static 'sphere :x 4571136.0 :y 389120.0 :z -14323712.0 :w 409600.0)
+    ;:buzzer 77
+    :bottom-height (meters -50)
+    :run-packages '("common")
+    :wait-for-load #f
+    )
+  )
+
 (define halfpipe
   (new 'static 'level-load-info
     :index 25
@@ -1964,6 +2006,7 @@
                              intro
                              demo
                              title
+                             yosemite
                              halfpipe
                              default-level
                              )
