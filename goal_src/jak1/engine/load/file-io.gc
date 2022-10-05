@@ -183,10 +183,10 @@
             ((zero? version-override)
              (case kind
                (((file-kind tpage) (file-kind dir-tpage))
-                7
+                6
                 )
                (((file-kind level-bt))
-                30
+                29
                 )
                (((file-kind art-group))
                 6
@@ -221,7 +221,7 @@
                )
        #f
        )
-      ((!= expected-version (-> info major-version))
+      ((> expected-version (-> info major-version))
        (format 0 "ERROR: file ~A is version ~D.~D, but needs to be ~D.x~%"
                (-> info file-name)
                (-> info major-version)
