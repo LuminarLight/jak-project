@@ -5,6 +5,10 @@
 ;; name in dgo: collide-touch-h
 ;; dgos: ENGINE, GAME
 
+(declare-type touching-shapes-entry structure)
+(declare-type touching-prims-entry structure)
+(define-extern get-intersect-point (function vector touching-prims-entry collide-shape touching-shapes-entry vector))
+
 ;; DECOMP BEGINS
 
 (deftype touching-prim (structure)
@@ -16,6 +20,7 @@
   :size-assert         #x68
   :flag-assert         #x900000068
   )
+
 
 (deftype touching-prims-entry (structure)
   ((next       touching-prims-entry         :offset-assert   0)
@@ -29,11 +34,12 @@
   :size-assert         #xe8
   :flag-assert         #xc000000e8
   (:methods
-    (touching-prims-entry-method-9 () none 9)
-    (touching-prims-entry-method-10 () none 10)
-    (touching-prims-entry-method-11 () none 11)
+    (touching-prims-entry-method-9 (_type_ vector) vector 9)
+    (touching-prims-entry-method-10 (_type_ collide-shape touching-shapes-entry) collide-shape-prim 10)
+    (touching-prims-entry-method-11 (_type_ collide-shape touching-shapes-entry) collide-tri-result 11)
     )
   )
+
 
 (deftype touching-prims-entry-pool (structure)
   ((head  touching-prims-entry            :offset-assert   0)
@@ -50,6 +56,7 @@
     (touching-prims-entry-pool-method-12 () none 12)
     )
   )
+
 
 (defmethod init-list! touching-prims-entry-pool ((obj touching-prims-entry-pool))
   (let ((v1-0 (the-as touching-prims-entry #f)))
@@ -71,6 +78,7 @@
   (none)
   )
 
+;; WARN: Return type mismatch structure vs touching-prims-entry-pool.
 (defmethod new touching-prims-entry-pool ((allocation symbol) (type-to-make type))
   (let ((t9-0 (method-of-type structure new))
         (v1-1 type-to-make)
@@ -99,11 +107,12 @@
     (get-head (_type_) touching-prims-entry 9)
     (get-next (_type_ touching-shapes-entry) touching-prims-entry 10)
     (touching-shapes-entry-method-11 () none 11)
-    (touching-shapes-entry-method-12 (_type_ collide-shape uint) touching-prims-entry 12)
-    (touching-shapes-entry-method-13 () none 13)
+    (prims-touching? (_type_ collide-shape uint) touching-prims-entry 12)
+    (touching-shapes-entry-method-13 (_type_ collide-shape uint uint) basic 13)
     (touching-shapes-entry-method-14 () none 14)
     )
   )
+
 
 (deftype touching-list (structure)
   ((num-touching-shapes int32                            :offset-assert   0)
@@ -123,6 +132,8 @@
     )
   )
 
+
+;; WARN: Return type mismatch structure vs touching-list.
 (defmethod new touching-list ((allocation symbol) (type-to-make type))
   (let ((t9-0 (method-of-type structure new))
         (v1-1 type-to-make)
@@ -140,6 +151,7 @@
   (-> obj head)
   )
 
+;; WARN: Return type mismatch collide-shape vs touching-prims-entry.
 (defmethod get-next touching-shapes-entry ((obj touching-shapes-entry) (arg0 touching-shapes-entry))
   (the-as touching-prims-entry (-> arg0 cshape1))
   )
@@ -147,10 +159,7 @@
 (kmemopen global "collide-touching-lists")
 
 (define-perm *touching-prims-entry-pool* touching-prims-entry-pool (new 'global 'touching-prims-entry-pool))
+
 (define-perm *touching-list* touching-list (new 'global 'touching-list))
 
 (kmemclose)
-
-
-
-

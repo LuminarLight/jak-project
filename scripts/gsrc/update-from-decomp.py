@@ -93,7 +93,8 @@ lines_to_ignore = [
     ";; failed to figure",
     ";; Used lq/sq",
     ";; this part is debug only",
-    ";; WARN: Return type mismatch int vs none"
+    ";; WARN: Return type mismatch int vs none",
+    ";; WARN: Stack slot offset"
 ]
 
 if decomp_ignore_errors:
@@ -185,7 +186,6 @@ if args.preserve:
 lines_to_ignore = 0
 i = len(final_lines) - 1
 while i > 0 and (final_lines[i] == "\n" or final_lines[i] == "0\n"):
-    print(final_lines[i])
     lines_to_ignore = lines_to_ignore + 1
     i = i - 1
 

@@ -126,7 +126,11 @@ static uint32_t c_symlink2(LinkedObjectFile& f,
           word_kind = LinkedWord::EMPTY_PTR;
           break;
         case SymbolLinkKind::TYPE:
-          dts.add_symbol(name, "type", {});
+          // hack for jak 2: this symbol is used as a type in village 1 and also the oracle level
+          // level info. We'll just leave it out, as we don't really need these definitions.
+          if (std::string(name) != "oracle") {
+            dts.add_symbol(name, "type", {});
+          }
           word_kind = LinkedWord::TYPE_PTR;
           break;
         default:
@@ -139,8 +143,8 @@ static uint32_t c_symlink2(LinkedObjectFile& f,
 
       ASSERT((code_value & 0xffff) == 0 || (code_value & 0xffff) == 0xffff);
       ASSERT(kind == SymbolLinkKind::SYMBOL);
-      //      ASSERT(false); // this case does not occur in V2/V4.  It does in V3.
-      f.symbol_link_offset(seg_id, code_ptr_offset - initial_offset, name);
+      f.symbol_link_offset(seg_id, code_ptr_offset - initial_offset, name,
+                           (code_value & 0xffff) == 0xffff);
     }
 
   } while (data.at(link_ptr_offset));
@@ -193,9 +197,11 @@ static uint32_t c_symlink3(LinkedObjectFile& f,
 
       f.symbol_link_word(seg, code_ptr - initial_offset, name, word_kind);
     } else {
+      u16 lower = code_value & 0xffff;
+      ASSERT(lower == 0 || lower == 0xffff);
       f.stats.v3_symbol_link_offset++;
       ASSERT(kind == SymbolLinkKind::SYMBOL);
-      f.symbol_link_offset(seg, code_ptr - initial_offset, name);
+      f.symbol_link_offset(seg, code_ptr - initial_offset, name, lower == 0xffff);
     }
 
   } while (data.at(link_ptr));

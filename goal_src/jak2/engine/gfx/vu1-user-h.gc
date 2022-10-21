@@ -31,7 +31,7 @@
   (bucket-2      2)
   (bucket-3      3)   ;; blit displays
   (tex-lcom-sky-pre  4)   ;; tex
-  (bucket-5      5)   ;; sky
+  (sky-draw      5)   ;; sky
   (bucket-6      6)   ;; ocean
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -392,7 +392,7 @@
   (bucket-311          311)  ;; depth-cue
 
   (tex-all-sprite      312)
-  (bucket-313          313)  ;; particles
+  (particles           313)  ;; particles
   (bucket-314          314)  ;; shadow
   (bucket-315          315)  ;; effects
   (tex-all-warp        316)  ;; tex

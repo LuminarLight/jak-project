@@ -189,6 +189,13 @@ TP_Type get_type_symbol_ptr(const std::string& name) {
   }
 }
 
+TP_Type get_type_symbol_val_ptr(const std::string& name,
+                                const DecompilerTypeSystem& dts,
+                                const Env& env) {
+  return TP_Type::make_from_ts(
+      TypeSpec("pointer", {get_type_symbol_val(name, dts, env).typespec()}));
+}
+
 /*!
  * Try to figure out the type of an atom.
  */
@@ -287,7 +294,6 @@ bool backprop_tagged_type(const TP_Type& expected_type,
           actual_type.tag.unknown_label->selected_type == expected_type.typespec()) {
         return false;  // no need to update
       } else {
-        auto& tag = actual_type.tag.unknown_label;
         actual_type.tag.unknown_label->selected_type = expected_type.typespec();
         return true;
       }
@@ -297,7 +303,6 @@ bool backprop_tagged_type(const TP_Type& expected_type,
           actual_type.tag.unknown_stack_structure->selected_type == expected_type.typespec()) {
         return false;  // no need to update
       } else {
-        auto& tag = actual_type.tag.unknown_stack_structure;
         actual_type.tag.unknown_stack_structure->selected_type = expected_type.typespec();
         return true;
       }
@@ -610,6 +615,10 @@ void types2_for_atom(types2::Type& type_out,
     } break;
     case SimpleAtom::Kind::SYMBOL_PTR: {
       auto type = get_type_symbol_ptr(atom.get_str());
+      type_out.type = type;
+    } break;
+    case SimpleAtom::Kind::SYMBOL_VAL_PTR: {
+      auto type = get_type_symbol_val_ptr(atom.get_str(), dts, env);
       type_out.type = type;
     } break;
     case SimpleAtom::Kind::INTEGER_CONSTANT: {

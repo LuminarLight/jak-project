@@ -753,7 +753,8 @@ void SimpleExpressionElement::update_from_stack_identity(const Env& env,
       }
     }
 
-  } else if (arg.is_sym_ptr() || arg.is_sym_val() || arg.is_int() || arg.is_empty_list()) {
+  } else if (arg.is_sym_ptr() || arg.is_sym_val() || arg.is_int() || arg.is_empty_list() ||
+             arg.is_sym_val_ptr()) {
     result->push_back(this);
     return;
   } else {
@@ -1052,7 +1053,7 @@ void SimpleExpressionElement::update_from_stack_add_i(const Env& env,
     // try to find symbol to string stuff
     auto arg0_int = get_goal_integer_constant(args.at(0), env);
 
-    if (arg0_int && (*arg0_int == SYMBOL_TO_STRING_MEM_OFFSET_DECOMP[env.version]) &&
+    if (arg0_int && ((s64)*arg0_int == SYMBOL_TO_STRING_MEM_OFFSET_DECOMP[env.version]) &&
         allowable_base_type_for_symbol_to_string(arg1_type.typespec())) {
       result->push_back(pool.alloc_element<GetSymbolStringPointer>(args.at(1)));
       return;
@@ -1360,23 +1361,41 @@ void SimpleExpressionElement::update_from_stack_mult_si(const Env& env,
                                                         FormStack& stack,
                                                         std::vector<FormElement*>* result,
                                                         bool allow_side_effects) {
-  auto arg0_i = is_int_type(env, m_my_idx, m_expr.get_arg(0).var());
-  auto arg1_i = is_int_type(env, m_my_idx, m_expr.get_arg(1).var());
+  if (m_expr.get_arg(0).is_int()) {
+    // annoyingly there's a mult3 v1, r0, v1 in jak 2.
+    auto arg1_i = is_int_type(env, m_my_idx, m_expr.get_arg(1).var());
 
-  auto args = pop_to_forms({m_expr.get_arg(0).var(), m_expr.get_arg(1).var()}, env, pool, stack,
-                           allow_side_effects);
+    auto args = pop_to_forms({m_expr.get_arg(1).var()}, env, pool, stack, allow_side_effects);
 
-  if (!arg0_i) {
-    args.at(0) = pool.form<CastElement>(TypeSpec("int"), args.at(0));
+    if (!arg1_i) {
+      args.at(0) = pool.form<CastElement>(TypeSpec("int"), args.at(1));
+    }
+
+    auto new_form = pool.alloc_element<GenericElement>(
+        GenericOperator::make_fixed(FixedOperatorKind::MULTIPLICATION),
+        pool.form<SimpleAtomElement>(SimpleAtom::make_int_constant(m_expr.get_arg(0).get_int())),
+        args.at(0));
+
+    result->push_back(new_form);
+  } else {
+    auto arg0_i = is_int_type(env, m_my_idx, m_expr.get_arg(0).var());
+    auto arg1_i = is_int_type(env, m_my_idx, m_expr.get_arg(1).var());
+
+    auto args = pop_to_forms({m_expr.get_arg(0).var(), m_expr.get_arg(1).var()}, env, pool, stack,
+                             allow_side_effects);
+
+    if (!arg0_i) {
+      args.at(0) = pool.form<CastElement>(TypeSpec("int"), args.at(0));
+    }
+
+    if (!arg1_i) {
+      args.at(1) = pool.form<CastElement>(TypeSpec("int"), args.at(1));
+    }
+
+    auto new_form = pool.alloc_element<GenericElement>(
+        GenericOperator::make_fixed(FixedOperatorKind::MULTIPLICATION), args.at(0), args.at(1));
+    result->push_back(new_form);
   }
-
-  if (!arg1_i) {
-    args.at(1) = pool.form<CastElement>(TypeSpec("int"), args.at(1));
-  }
-
-  auto new_form = pool.alloc_element<GenericElement>(
-      GenericOperator::make_fixed(FixedOperatorKind::MULTIPLICATION), args.at(0), args.at(1));
-  result->push_back(new_form);
 }
 
 void SimpleExpressionElement::update_from_stack_force_si_2(const Env& env,
@@ -3226,14 +3245,15 @@ void FunctionCallElement::update_from_stack(const Env& env,
               "type.");
         }
 
-        bool is_res_lump = tp_type.method_from_type().base_type() == "res-lump";
+        bool is_res_lump = tp_type.method_from_type().base_type() == "res-lump" ||
+                           tp_type.method_from_type().base_type() == "entity-actor";
         bool should_use_virtual =
             env.dts->ts.should_use_virtual_methods(tp_type.method_from_type(), tp_type.method_id());
 
         if (!should_use_virtual && !is_res_lump) {
           throw std::runtime_error(
-              fmt::format("Method call on {} id {} used a virtual call unexpectedly.",
-                          tp_type.method_from_type().print(), tp_type.method_id()));
+              fmt::format("Method call on {} id {} at {} used a virtual call unexpectedly.",
+                          tp_type.method_from_type().print(), tp_type.method_id(), "ya"));
         }
 
         if (should_use_virtual) {
@@ -3683,8 +3703,10 @@ ConstantTokenElement* DerefElement::try_as_art_const(const Env& env, FormPool& p
     if (elt_name) {
       return pool.alloc_element<ConstantTokenElement>(*elt_name);
     } else {
-      lg::error("function {}: did not find art element {} in {}", env.func->name(),
-                mr.maps.ints.at(0), env.art_group());
+      if (env.version != GameVersion::Jak2) {
+        lg::error("function {}: did not find art element {} in {}", env.func->name(),
+                  mr.maps.ints.at(0), env.art_group());
+      }
     }
   }
 

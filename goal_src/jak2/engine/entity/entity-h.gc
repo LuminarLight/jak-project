@@ -29,13 +29,13 @@
 (define-extern reset-cameras (function none))
 
 ;; NOTE - for airlock
-(define-extern process-entity-status! (function process entity-perm-status symbol int))
+(define-extern process-entity-status! (function process entity-perm-status symbol entity-perm-status))
 (define-extern process-drawable-from-entity! (function process-drawable entity-actor none))
 
 (declare-type nav-poly structure)
 
-;; NOTE - for default-menu
 (define-extern *compact-actors* symbol)
+(define-extern *spawn-actors* symbol)
 (define-extern debug-actor (function string none))
 (define-extern reset-actors (function symbol none))
 
@@ -191,8 +191,8 @@
   )
 
 (deftype actor-reference (structure)
-  ((actor entity  :offset-assert   0)
-   (id    uint32  :offset-assert   4)
+  ((actor entity        :offset-assert   0)
+   (id    uint32        :offset-assert   4)
    )
   :pack-me
   :method-count-assert 9

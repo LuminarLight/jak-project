@@ -273,7 +273,7 @@
 ;; failed to figure out what this is:
 (defpartgroup group-part-water-splash
   :id 40
-  :duration 900
+  :duration (seconds 3)
   :flags (use-local-clock)
   :bounds (static-bspherem 0 -12 0 14)
   :parts ((sp-item 124 :flags (is-3d) :period 900 :length 63)
@@ -312,7 +312,7 @@
 ;; failed to figure out what this is:
 (defpartgroup group-part-water-splash-small
   :id 41
-  :duration 900
+  :duration (seconds 3)
   :flags (use-local-clock)
   :bounds (static-bspherem 0 -12 0 14)
   :parts ((sp-item 124 :flags (is-3d) :period 900 :length 63)
@@ -1361,8 +1361,8 @@
 ;; failed to figure out what this is:
 (defstate water-vol-idle (water-vol)
   :virtual #t
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (let ((v1-0 arg2))
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (let ((v1-0 event-type))
       (the-as object (if (= v1-0 'update)
                          (TODO-RENAME-26 self)
                          )

@@ -295,7 +295,7 @@
 
 ;; definition for function target-board-resolve-points
 ;; WARN: Return type mismatch int vs none.
-(defbehavior target-board-resolve-points target ((arg0 float) (arg1 float) (arg2 float) (arg3 float))
+(defbehavior target-board-resolve-points target ()
   (when (= (-> self board main mode) (joint-mod-mode rotate))
     (let ((f0-1 (fabs (-> self board troty-cum))))
       (cond
@@ -323,12 +323,7 @@
 ;; definition for function target-board-ground-check
 ;; INFO: Used lq/sq
 ;; WARN: Return type mismatch symbol vs none.
-;; ERROR: Function may read a register that is not set: a0
-;; ERROR: Function may read a register that is not set: a1
-;; ERROR: Function may read a register that is not set: a2
-;; ERROR: Function may read a register that is not set: a3
 (defbehavior target-board-ground-check target ()
-  (local-vars (a0-4 object) (a1-0 object) (a2-3 number) (a3-0 number))
   (when (board-on-ground?)
     (when (!= (-> self board troty-cum) 0.0)
       (let ((f30-0 (fabs (-> self board troty-cum)))
@@ -338,131 +333,101 @@
         (if (< (- (-> self clock frame-counter) (-> self board halfpipe-time)) (seconds 0.1))
             (set! f28-0 (+ 32768.0 f28-0))
             )
-        (let ((t9-3 deg-diff))
-          (set! a0-4 f0-2)
-          (set! a1-0 f28-0)
-          (let ((f0-5 (fabs (t9-3 (the-as float a0-4) (the-as float a1-0)))))
-            (when (and (>= f30-0 49152.0) (>= 4551.1113 f0-5))
-              (cond
-                ((>= f30-0 191146.67)
-                 (add-to-trick-list (-> self board) (board-tricks board-boost) 2000.0)
-                 )
-                ((>= f30-0 126520.89)
-                 (add-to-trick-list (-> self board) (board-tricks board-boost) 1000.0)
-                 )
-                (else
-                  (add-to-trick-list (-> self board) (board-tricks board-boost) 500.0)
-                  )
+        (let ((f0-5 (fabs (deg-diff f0-2 f28-0))))
+          (when (and (>= f30-0 49152.0) (>= 4551.1113 f0-5))
+            (cond
+              ((>= f30-0 191146.67)
+               (add-to-trick-list (-> self board) (board-tricks board-boost) 2000.0)
+               )
+              ((>= f30-0 126520.89)
+               (add-to-trick-list (-> self board) (board-tricks board-boost) 1000.0)
+               )
+              (else
+                (add-to-trick-list (-> self board) (board-tricks board-boost) 500.0)
                 )
-              (let ((t9-7 lerp-scale)
-                    (a0-8 20480.0)
-                    (a1-4 40960.0)
-                    )
-                (set! a2-3 f30-0)
-                (set! a3-0 49152.0)
-                (let ((f0-8 (t9-7 a0-8 a1-4 (the-as float a2-3) (the-as float a3-0) 182044.44))
-                      (v1-28 (-> self control transv))
+              )
+            (let ((f0-8 (lerp-scale 20480.0 40960.0 f30-0 49152.0 182044.44)))
+              (vector+float*!
+                (-> self control transv)
+                (-> self control transv)
+                (-> self control unknown-matrix01 vector 2)
+                f0-8
+                )
+              )
+            (if (< (vector-length (-> self control transv)) 114688.0)
+                (vector-normalize! (-> self control transv) 114688.0)
+                )
+            (when (not (logtest? (-> self control old-status) (cshape-moving-flags on-surface)))
+              (let ((gp-0 (new 'stack-no-clear 'vector)))
+                (set! (-> gp-0 quad) (-> self control trans quad))
+                (set! (-> gp-0 y) (+ 2048.0 (-> gp-0 y)))
+                (let ((s5-0 (get-process *default-dead-pool* part-tracker #x4000)))
+                  (when s5-0
+                    (let ((t9-10 (method-of-type part-tracker activate)))
+                      (t9-10 (the-as part-tracker s5-0) self (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
                       )
-                  (set! a0-4 (-> self control transv))
-                  (set! a1-0 (-> self control unknown-matrix01 vector 2))
-                  (vector+float*! v1-28 (the-as vector a0-4) (the-as vector a1-0) f0-8)
-                  )
-                )
-              (when (< (vector-length (-> self control transv)) 114688.0)
-                (let ((t9-8 vector-normalize!))
-                  (set! a0-4 (-> self control transv))
-                  (set! a1-0 114688.0)
-                  (t9-8 (the-as vector a0-4) (the-as float a1-0))
-                  )
-                )
-              (when (not (logtest? (-> self control old-status) (cshape-moving-flags on-surface)))
-                (let ((gp-0 (new 'stack-no-clear 'vector)))
-                  (set! (-> gp-0 quad) (-> self control trans quad))
-                  (set! (-> gp-0 y) (+ 2048.0 (-> gp-0 y)))
-                  (let ((s5-0 (get-process *default-dead-pool* part-tracker #x4000)))
-                    (when s5-0
-                      (let ((t9-10 (method-of-type part-tracker activate)))
-                        (t9-10 (the-as part-tracker s5-0) self (symbol->string (-> part-tracker symbol)) (the-as pointer #x70004000))
-                        )
-                      (let ((t9-11 run-function-in-process)
-                            (a0-12 s5-0)
-                            (a1-8 part-tracker-init)
-                            (a2-8 (-> *part-group-id-table* 119))
-                            (a3-2 0)
-                            (t0-1 #f)
-                            (t1-0 #f)
-                            (t2-0 #f)
-                            (t3-0 *launch-matrix*)
-                            )
-                        (set! (-> t3-0 trans quad) (-> gp-0 quad))
-                        ((the-as (function object object object object object object object object none) t9-11)
-                         a0-12
-                         a1-8
-                         a2-8
-                         a3-2
-                         t0-1
-                         t1-0
-                         t2-0
-                         t3-0
-                         )
-                        )
-                      (-> s5-0 ppointer)
+                    (let ((t9-11 run-function-in-process)
+                          (a0-14 s5-0)
+                          (a1-10 part-tracker-init)
+                          (a2-8 (-> *part-group-id-table* 119))
+                          (a3-2 0)
+                          (t0-1 #f)
+                          (t1-0 #f)
+                          (t2-0 #f)
+                          (t3-0 *launch-matrix*)
+                          )
+                      (set! (-> t3-0 trans quad) (-> gp-0 quad))
+                      ((the-as (function object object object object object object object object none) t9-11)
+                       a0-14
+                       a1-10
+                       a2-8
+                       a3-2
+                       t0-1
+                       t1-0
+                       t2-0
+                       t3-0
+                       )
                       )
+                    (-> s5-0 ppointer)
                     )
-                  (let* ((s4-0 (get-process *default-dead-pool* manipy #x4000))
-                         (s5-1
-                           (when s4-0
-                             (let ((t9-13 (method-of-type manipy activate)))
-                               (t9-13 (the-as manipy s4-0) self (symbol->string (-> manipy symbol)) (the-as pointer #x70004000))
-                               )
-                             (let ((s5-2 run-function-in-process)
-                                   (s3-0 s4-0)
-                                   (s2-0 manipy-init)
-                                   (s1-0 (-> self entity))
-                                   (t0-2 (art-group-get-by-name *level* "skel-generic-blast" (the-as (pointer uint32) #f)))
-                                   (t1-1 #f)
-                                   )
-                               0
-                               ((the-as (function object object object object object object none) s5-2) s3-0 s2-0 gp-0 s1-0 t0-2 t1-1)
-                               )
-                             (-> s4-0 ppointer)
+                  )
+                (let* ((s4-0 (get-process *default-dead-pool* manipy #x4000))
+                       (s5-1
+                         (when s4-0
+                           (let ((t9-13 (method-of-type manipy activate)))
+                             (t9-13 (the-as manipy s4-0) self (symbol->string (-> manipy symbol)) (the-as pointer #x70004000))
                              )
+                           (let ((s5-2 run-function-in-process)
+                                 (s3-0 s4-0)
+                                 (s2-0 manipy-init)
+                                 (s1-0 (-> self entity))
+                                 (t0-2 (art-group-get-by-name *level* "skel-generic-blast" (the-as (pointer uint32) #f)))
+                                 (t1-1 #f)
+                                 )
+                             0
+                             ((the-as (function object object object object object object none) s5-2) s3-0 s2-0 gp-0 s1-0 t0-2 t1-1)
+                             )
+                           (-> s4-0 ppointer)
                            )
                          )
-                    (when s5-1
-                      (quaternion-copy! (-> (the-as board (-> s5-1 0)) root quat) (-> self control unknown-quaternion00))
-                      (send-event (ppointer->process s5-1) 'anim-mode 'play1)
-                      (send-event (ppointer->process s5-1) 'anim "idle")
-                      (send-event (ppointer->process s5-1) 'speed #x3fc00000)
-                      (set-vector! (-> (the-as board (-> s5-1 0)) root scale) 0.2 0.4 0.2 1.0)
-                      )
-                    )
-                  )
-                (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 255 (seconds 0.3))
-                (let ((gp-1 sound-play-by-name))
-                  (let ((s5-3 (make-u128 #x74736f (the-as uint #x6f622d6472616f62))))
-                    (set! a1-0 (new-sound-id))
-                    (set! a2-3 1024)
-                    (set! a3-0 0)
-                    (set! a0-4 s5-3)
-                    )
-                  (gp-1
-                    (the-as sound-name a0-4)
-                    (the-as sound-id a1-0)
-                    (the-as int a2-3)
-                    (the-as int a3-0)
-                    0
-                    (sound-group sfx)
-                    #t
+                       )
+                  (when s5-1
+                    (quaternion-copy! (-> (the-as board (-> s5-1 0)) root quat) (-> self control unknown-quaternion00))
+                    (send-event (ppointer->process s5-1) 'anim-mode 'play1)
+                    (send-event (ppointer->process s5-1) 'anim "idle")
+                    (send-event (ppointer->process s5-1) 'speed #x3fc00000)
+                    (set-vector! (-> (the-as board (-> s5-1 0)) root scale) 0.2 0.4 0.2 1.0)
                     )
                   )
                 )
+              (cpad-set-buzz! (-> *cpad-list* cpads 0) 1 255 (seconds 0.3))
+              (sound-play "board-boost")
               )
             )
           )
         )
       )
-    (target-board-resolve-points (the-as float a0-4) (the-as float a1-0) (the-as float a2-3) (the-as float a3-0))
+    (target-board-resolve-points)
     )
   (set! (-> self board turn-anim-tilt?) #t)
   (none)
@@ -547,8 +512,8 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-stance (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('lip)
        (when (and (= (-> self control ground-pat mode) (pat-mode halfpipe))
                   (< (-> self control poly-angle) 0.5)
@@ -565,7 +530,7 @@
                   )
          (set! (-> self board halfpipe-lip-time) (-> self clock frame-counter))
          (set! (-> self board halfpipe-side-time) (-> self clock frame-counter))
-         (set! (-> self board halfpipe-lip-event) (the-as symbol (-> arg3 param 0)))
+         (set! (-> self board halfpipe-lip-event) (the-as symbol (-> event param 0)))
          (let ((v0-2 (the-as object (logior (-> self control root-prim prim-core action) (collide-action no-normal-reset))))
                )
            (set! (-> self control root-prim prim-core action) (the-as collide-action v0-2))
@@ -576,13 +541,13 @@
       (('jump)
        (go
          target-board-jump
-         (the-as meters (-> arg3 param 0))
-         (the-as meters (-> arg3 param 1))
-         (the-as symbol (-> arg3 param 2))
+         (the-as meters (-> event param 0))
+         (the-as meters (-> event param 1))
+         (the-as symbol (-> event param 2))
          )
        )
       (else
-        (target-board-handler arg0 arg1 arg2 arg3)
+        (target-board-handler proc arg1 event-type event)
         )
       )
     )
@@ -698,42 +663,44 @@
     )
   :code (behavior ()
     (let ((gp-0 (-> self board stance-info)))
-      (let ((f30-0 (the-as number 0.0))
-            (s5-0 30)
-            (v1-3 (ja-group))
-            )
-        (when (not (and (and v1-3 (= v1-3 (-> self draw art-group data 161))) (= (ja-group-size) 4)))
-          (let ((v1-10 (ja-group)))
-            (when (and v1-10 (= v1-10 (-> self draw art-group data 170)))
-              (ja-channel-set! 1)
-              (ja-no-eval :group! (-> self draw art-group data 190)
-                          :num! (seek!
-                            (the float (+ (-> (the-as art-joint-anim (-> self draw art-group data 190)) frames num-frames) -1))
-                            1.8
-                            )
-                          :frame-num 0.0
-                          )
-              (until (ja-done? 0)
-                (suspend)
-                (ja :num! (seek! max 1.8))
-                )
-              (suspend)
-              (set! (-> self board turn-anim-duck) 1.0)
-              (set! (-> self board turn-anim-duck-vel) 15.0)
+      (let ((f30-0 0.0))
+        (let ((s5-0 30)
+              (v1-3 (ja-group))
               )
+          (when (not (and (and v1-3 (= v1-3 (-> self draw art-group data 161))) (= (ja-group-size) 4)))
+            (let ((v1-10 (ja-group)))
+              (when (and v1-10 (= v1-10 (-> self draw art-group data 170)))
+                (ja-channel-set! 1)
+                (ja-no-eval :group! (-> self draw art-group data 190)
+                            :num! (seek!
+                              (the float (+ (-> (the-as art-joint-anim (-> self draw art-group data 190)) frames num-frames) -1))
+                              1.8
+                              )
+                            :frame-num 0.0
+                            )
+                (until (ja-done? 0)
+                  (suspend)
+                  (ja :num! (seek! max 1.8))
+                  )
+                (suspend)
+                (set! (-> self board turn-anim-duck) 1.0)
+                (set! (-> self board turn-anim-duck-vel) 15.0)
+                )
+              )
+            (ja-channel-push! 4 (the-as time-frame s5-0))
+            (set! f30-0 (ja-frame-num 0))
             )
-          (ja-channel-push! 4 (the-as time-frame s5-0))
-          (set! f30-0 (ja-frame-num 0))
           )
-        )
-      (ground-tween-initialize
-        gp-0
-        (the-as uint 0)
-        (the-as uint (-> self draw art-group data 153))
-        (the-as uint (-> self draw art-group data 163))
-        (the-as uint (-> self draw art-group data 164))
-        (the-as uint (-> self draw art-group data 162))
-        (the-as uint (-> self draw art-group data 161))
+        (ground-tween-initialize
+          gp-0
+          (the-as uint 0)
+          (the-as uint (-> self draw art-group data 153))
+          (the-as uint (-> self draw art-group data 163))
+          (the-as uint (-> self draw art-group data 164))
+          (the-as uint (-> self draw art-group data 162))
+          (the-as uint (-> self draw art-group data 161))
+          f30-0
+          )
         )
       (ja :chan 3 :group! (-> self draw art-group data 152))
       (until #f
@@ -750,14 +717,7 @@
              (set! f0-10 0.0)
              )
             )
-          (let ((t9-9 ground-tween-update)
-                (a0-24 gp-0)
-                (a1-4 f0-10)
-                (a2-3 f1-2)
-                )
-            #x3dcccccd
-            (t9-9 a0-24 a1-4 a2-3)
-            )
+          (ground-tween-update gp-0 f0-10 f1-2 0.1)
           )
         (ja :chan 1 :num! (chan 0))
         (ja :chan 2 :num! (chan 0))
@@ -823,7 +783,7 @@
                      (the-as time-frame (-> *TARGET-bank* ground-timeout))
                      )
                  )
-             (begin self (can-exit-duck?))
+             (can-exit-duck? self)
              )
         (go target-board-stance)
         )
@@ -914,11 +874,11 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-jump (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (if (and (= arg2 'edge-grab) (< (- (-> self clock frame-counter) (-> self state-time)) (seconds 0.1)))
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (if (and (= event-type 'edge-grab) (< (- (-> self clock frame-counter) (-> self state-time)) (seconds 0.1)))
         (return #f)
         )
-    (target-board-handler arg0 arg1 arg2 arg3)
+    (target-board-handler proc arg1 event-type event)
     )
   :enter (behavior ((arg0 meters) (arg1 meters) (arg2 symbol))
     (local-vars
@@ -1132,8 +1092,8 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-halfpipe (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('edge-grab)
        (format
          #t
@@ -1178,14 +1138,14 @@
          )
        )
       (('grenade)
-       (if (< (the-as float (-> arg3 param 0))
+       (if (< (the-as float (-> event param 0))
               (vector-dot (-> self control dynam gravity-normal) (-> self control transv))
               )
-           (go target-board-grenade (process->handle arg0))
+           (go target-board-grenade (process->handle proc))
            )
        )
       (else
-        (target-board-handler arg0 arg1 arg2 arg3)
+        (target-board-handler proc arg1 event-type event)
         )
       )
     )
@@ -2232,13 +2192,13 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-ride-edge (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('edge-grab 'push-transv 'push-trans)
        #f
        )
       (('end-mode)
-       (when (-> arg3 param 0)
+       (when (-> event param 0)
          (let ((v1-6 (/ (- (-> self clock frame-counter) (-> self board ride-start-time)) 300)))
            (if (> v1-6 0)
                (add-to-trick-list (-> self board) (board-tricks board-rail) (* 100.0 (the float v1-6)))
@@ -2248,7 +2208,7 @@
        (go target-board-turn-to (-> self control transv) (seconds 0.2))
        )
       (else
-        (target-board-handler arg0 arg1 arg2 arg3)
+        (target-board-handler proc arg1 event-type event)
         )
       )
     )
@@ -2506,13 +2466,13 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-grenade (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('target)
        (handle->process (-> self control unknown-handle02))
        )
       (else
-        (target-board-handler arg0 arg1 arg2 arg3)
+        (target-board-handler proc arg1 event-type event)
         )
       )
     )
@@ -2617,19 +2577,19 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-get-on (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('attack 'attack-or-shove 'attack-invinc)
        (target-attacked
-         arg2
-         (the-as attack-info (-> arg3 param 1))
-         arg0
-         (the-as process (-> arg3 param 0))
+         event-type
+         (the-as attack-info (-> event param 1))
+         proc
+         (the-as process (-> event param 0))
          target-hit
          )
        )
       (else
-        (target-generic-event-handler arg0 arg1 arg2 arg3)
+        (target-generic-event-handler proc arg1 event-type event)
         )
       )
     )
@@ -2775,13 +2735,13 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-pegasus (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('end-mode)
        (go target-jump 16384.0 16384.0 (the-as surface #f))
        )
       (else
-        (target-generic-event-handler arg0 arg1 arg2 arg3)
+        (target-generic-event-handler proc arg1 event-type event)
         )
       )
     )
@@ -2817,13 +2777,7 @@
           (when s4-1
             (set! (-> self control unknown-vector38 quad) (-> (get-trans (the-as process-focusable s4-1) 0) quad))
             (set! (-> self control unknown-vector38 y) (+ 4096.0 (-> self control unknown-vector38 y)))
-            (let* ((s3-2 (-> self control unknown-vector40))
-                   (a0-15 (the-as process-focusable s4-1))
-                   (t9-4 (method-of-object a0-15 get-quat))
-                   )
-              0
-              (set! (-> s3-2 quad) (-> (t9-4 a0-15) vec quad))
-              )
+            (set! (-> self control unknown-vector40 quad) (-> (get-quat (the-as process-focusable s4-1) 0) vec quad))
             )
           (let ((f28-0 (sin (lerp-scale 0.0 16384.0 (ja-aframe-num 0) 0.0 30.0))))
             (let ((f26-0 f28-0))
@@ -3078,30 +3032,28 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-grab (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
     (cond
-      ((and (= arg2 'query) (= (-> arg3 param 0) 'mode))
+      ((and (= event-type 'query) (= (-> event param 0) 'mode))
        (-> self state name)
        )
       (else
-        (case arg2
+        (case event-type
           (('end-mode)
            (go target-board-stance)
            )
           (('clone-anim)
-           (go target-board-clone-anim (process->handle (the-as process (-> arg3 param 0))))
+           (go target-board-clone-anim (process->handle (the-as process (-> event param 0))))
            )
           (('change-mode)
-           (case (-> arg3 param 0)
+           (case (-> event param 0)
              (('normal)
-              enter-state
-              'stance
-              (go target-grab)
+              (go target-grab 'stance)
               )
              )
            )
           (else
-            (target-generic-event-handler arg0 arg1 arg2 arg3)
+            (target-generic-event-handler proc arg1 event-type event)
             )
           )
         )
@@ -3143,11 +3095,11 @@
 
 ;; failed to figure out what this is:
 (defstate target-board-clone-anim (target)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (if (and (= arg2 'trans) (= (-> arg3 param 0) 'restore))
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (if (and (= event-type 'trans) (= (-> event param 0) 'restore))
         (set! (-> self control unknown-word04) (the-as uint #f))
         )
-    ((-> target-board-grab event) arg0 arg1 arg2 arg3)
+    ((-> target-board-grab event) proc arg1 event-type event)
     )
   :enter (-> target-clone-anim enter)
   :exit (behavior ()
@@ -3202,7 +3154,7 @@
       )
     (none)
     )
-  :code (behavior ((arg0 vector))
+  :code (behavior ((arg0 vector) (arg1 attack-info))
     (logclear! (-> self water flags) (water-flags jump-out))
     (logclear! (-> self focus-status) (focus-status halfpipe))
     (set! (-> self state-time) (-> self clock frame-counter))
@@ -3230,8 +3182,7 @@
              )
            )
           )
-        self
-        ((method-of-type attack-info attack-info-method-11))
+        (combine! gp-0 arg1 self)
         (when (not (logtest? (-> gp-0 mask) (attack-info-mask vector)))
           (vector-z-quaternion! (-> gp-0 vector) (-> self control unknown-quaternion00))
           (vector-xz-normalize! (-> gp-0 vector) (- (fabs (-> gp-0 shove-back))))

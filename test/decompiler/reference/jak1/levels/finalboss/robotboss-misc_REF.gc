@@ -14,11 +14,11 @@
 
 ;; failed to figure out what this is:
 (defstate cam-robotboss (camera-slave)
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('set-pivot)
        (let ((v0-0 (the-as object (-> self pivot-pt))))
-         (set! (-> (the-as vector v0-0) quad) (-> (the-as vector (-> arg3 param 0)) quad))
+         (set! (-> (the-as vector v0-0) quad) (-> (the-as vector (-> event param 0)) quad))
          v0-0
          )
        )
@@ -26,7 +26,7 @@
        #f
        )
       (else
-        (cam-standard-event-handler arg0 arg1 arg2 arg3)
+        (cam-standard-event-handler proc arg1 event-type event)
         )
       )
     )
@@ -175,6 +175,9 @@
 ;; definition for function ecoclaw-handler
 ;; INFO: Used lq/sq
 ;; INFO: Return type mismatch none vs object.
+;; WARN: Failed load: (set! a0-3 (l.wu (+ gp-1 -4))) at op 13
+;; WARN: Failed load: (set! a0-6 (l.wu (+ s5-0 -4))) at op 41
+;; WARN: Failed load: (set! a0-7 (l.wu (+ s5-1 -4))) at op 65
 ;; WARN: rewrite_to_get_var got a none typed variable. Is there unreachable code? [OP: 28]
 ;; WARN: rewrite_to_get_var got a none typed variable. Is there unreachable code? [OP: 79]
 (defbehavior ecoclaw-handler ecoclaw ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
@@ -344,10 +347,10 @@
 ;; failed to figure out what this is:
 (defstate idle (silodoor)
   :virtual #t
-  :event (behavior ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
-    (case arg2
+  :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
+    (case event-type
       (('open)
-       (set! (-> self part-opened) (the-as float (-> arg3 param 0)))
+       (set! (-> self part-opened) (the-as float (-> event param 0)))
        )
       (('hide)
        (go-virtual hidden)
