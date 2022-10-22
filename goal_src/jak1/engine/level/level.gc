@@ -875,6 +875,12 @@
 (defmethod birth level ((obj level))
   "Birth a level to make it alive! It must be loaded."
 
+  (when (= (-> obj name) 'yosemite)
+      (set! (-> obj bsp actors)
+        (new 'static 'drawable-inline-array-actor)
+      )
+    )
+    
   (case (-> obj status)
     (('loaded)
      (protect (loading-level
