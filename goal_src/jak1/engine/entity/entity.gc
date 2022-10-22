@@ -1351,7 +1351,7 @@
   
   ;; NOTE: we don't actually birth the actors. It is too slow.
   ;; so it gets spread over multiple frames later. 
-  (when (and (nonzero? (-> obj actors)) (!= (-> obj level name) 'yosemite))
+  (when (nonzero? (-> obj actors))
     (dotimes (birth-idx (-> obj actors length))
       (let* ((idx-to-birth (-> obj actor-birth-order birth-idx))
              (actor-to-birth (-> obj actors data (logand idx-to-birth #xffff) actor))
