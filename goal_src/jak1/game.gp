@@ -1373,6 +1373,26 @@
   "robocave-vis"
   )
 
+;;;;;;;;;;;;;;;;;;;;;
+;; yosemite
+;;;;;;;;;;;;;;;;;;;;;
+
+(cgo "YOS.DGO" "yos.gd")
+
+(copy-vis-files "YOS")
+
+(copy-textures 1332 1334 1333 1331)
+
+(copy-gos
+  "yosemite-vis"
+  )
+
+;;;;;;;;;;;;;;;;;;;;;
+;; foyer
+;;;;;;;;;;;;;;;;;;;;;
+
+(build-custom-level "foyer")
+(custom-level-cgo "FOY.DGO" "foyer/foyer.gd")
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; lavatube
@@ -1538,20 +1558,6 @@
 (copy-strs "FIWECO")
 ;; green-sagecage
 (copy-strs "GRSDSACR" "GRSOBBA" "GRSOBBB" "GRSOBBEC" "GRSOBBNC" "GRSOBFIN")
-
-;;;;;;;;;;;;;;;;;;;;;
-;; yosemite
-;;;;;;;;;;;;;;;;;;;;;
-
-(cgo "YOS.DGO" "yos.gd")
-
-(copy-vis-files "YOS")
-
-(copy-textures 1332 1334 1333 1331)
-
-(copy-gos
-  "yosemite-vis"
-  )
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; intro only
