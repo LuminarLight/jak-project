@@ -1452,6 +1452,90 @@
     )
   )
 
+(define foyer
+  (new 'static 'level-load-info
+    :index 27
+    :name 'foyer
+    :visname 'foyer-vis
+    :nickname 'foy
+    :packages '(foyer)
+    :sound-banks '()
+    :music-bank 'village1
+    :ambient-sounds '()
+    :mood '*village1-mood*
+    :mood-func 'update-mood-default
+    :ocean #f
+    :sky #t
+    :continues '((new 'static 'continue-point
+        :name "yosemite-foyer"
+        :level 'foyer
+        :trans (new 'static 'vector :x (meters 1142.00) :y (meters 51.0) :z (meters -3611) :w 1.0)
+        :quat (new 'static 'quaternion :y -0.7421 :w 0.6702)
+        :camera-trans (new 'static 'vector :x (meters 1097.0738) :y (meters 51.7012) :z (meters -3798.3625) :w 1.0)
+        :camera-rot (new 'static 'array float 9 -0.1558 -0.0000 0.9877 -0.1190 0.9927 -0.0187 -0.9805 -0.1205 -0.1547)
+        :load-commands '()
+        :vis-nick #f
+        :lev0 'foyer
+        :disp0 'display
+        :lev1 'yosemite
+        :disp1 'display
+        )
+        (new 'static 'continue-point
+        :name "yosemite-start"
+        :level 'foyer
+        :trans (new 'static 'vector :x (meters 1084.7189) :y (meters 46.5507) :z (meters -3800.3117) :w 1.0)
+        :quat (new 'static 'quaternion :y -0.7421 :w 0.6702)
+        :camera-trans (new 'static 'vector :x (meters 1097.0738) :y (meters 51.7012) :z (meters -3798.3625) :w 1.0)
+        :camera-rot (new 'static 'array float 9 -0.1558 -0.0000 0.9877 -0.1190 0.9927 -0.0187 -0.9805 -0.1205 -0.1547)
+        :load-commands '()
+        :vis-nick #f
+        :lev0 'yosemite
+        :disp0 'display
+        :lev1 'foyer
+        :disp1 'display
+        )
+      )
+    :tasks '()
+    :priority 100
+    :load-commands '()
+    :alt-load-commands '()
+    :bsp-mask #xffffffffffffffff
+    :bsphere (new 'static 'sphere)
+    ;:buzzer 77
+    :bottom-height (meters -20)
+    :run-packages '("common")
+    :wait-for-load #f
+    )
+  )
+
+(define yosemite
+  (new 'static 'level-load-info
+    :index 28
+    :name 'yosemite
+    :visname 'yosemite-vis
+    :nickname 'yos
+    :packages '(yosemite)
+    :sound-banks '()
+    :music-bank 'village1
+    :ambient-sounds '()
+    :mood '*village1-mood*
+    :mood-func 'update-mood-default
+    :ocean #f
+    :sky #t
+    :continues '()
+    :tasks '()
+    :priority 100
+    :load-commands '()
+    :alt-load-commands '()
+    :bsp-mask #xffffffffffffffff
+    :bsphere (new 'static 'sphere)
+    ;:buzzer 77
+    :bottom-height (meters -20)
+    :run-packages '("common")
+    :wait-for-load #f
+    )
+  )
+
 (define lavatube
   (new 'static 'level-load-info
     :index 19
@@ -1872,48 +1956,6 @@
     )
   )
 
-(define yosemite
-  (new 'static 'level-load-info
-    :index 25
-    :name 'yosemite
-    :visname 'yosemite-vis
-    :nickname 'yos
-    :packages '(yosemite)
-    :sound-banks '()
-    :music-bank 'village1
-    :ambient-sounds '()
-    :mood '*village1-mood*
-    :mood-func 'update-mood-village1
-    :ocean #f
-    :sky #t
-    :continues '((new 'static 'continue-point
-        :name "yosemite-start"
-        :level 'yosemite
-        :trans (new 'static 'vector :x 4498122.752 :y 201115.648 :z -15525967.872 :w 1.0)
-        :quat (new 'static 'quaternion :y 0.9999 :w 0.005)
-        :camera-trans (new 'static 'vector :x 4469439.5 :y 207701.2 :z -14003077.0 :w 1.0)
-        :camera-rot (new 'static 'array float 9 -0.9996 0.0 0.0268 -0.0032 0.9925 -0.1216 -0.0266 -0.1216 -0.9922)
-        :load-commands '()
-        :vis-nick #f
-        :lev0 'yosemite
-        :disp0 'display
-        :lev1 #f
-        :disp1 #f
-        )
-      )
-    :tasks '()
-    :priority 100
-    :load-commands '()
-    :alt-load-commands '()
-    :bsp-mask #xffffffffffffffff
-    :bsphere (new 'static 'sphere :x 4571136.0 :y 389120.0 :z -14323712.0 :w 409600.0)
-    ;:buzzer 77
-    :bottom-height (meters -50)
-    :run-packages '("common")
-    :wait-for-load #f
-    )
-  )
-
 (define halfpipe
   (new 'static 'level-load-info
     :index 25
@@ -2000,13 +2042,14 @@
                              maincave
                              darkcave
                              robocave
+                             foyer
+                             yosemite
                              lavatube
                              citadel
                              finalboss
                              intro
                              demo
-                             title
-                             yosemite
+                             title                            
                              halfpipe
                              default-level
                              )
