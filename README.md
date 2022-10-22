@@ -8,20 +8,19 @@ More info about the level: https://jadtech.miraheze.org/wiki/Research:Yosemite
 Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and put it into the DGO folder of the incoming iso data. Then do everything as you would do with normal OpenGOAL. If you did everything good, then game will have Yosemite accessible from Volcanic Crater (exact access location is in research phase).
 
 ### Progress so far
-- none
+- Levels that have stuff with same versions as Yosemite's stuff will no longer get rejected by the game.
+- A valid level is now generated from YOS.DGO, though we decided to clear its actors (through code) and do that in another way - the level is just too old.
+- Yosemite will always have "all visible", due to its age, which caused horrible visibility issues.
+- Defined 'yosemite' in level-info, though its checkpoints will be somewhere else due to technical limitations.
+- A custom level 'foyer' was made that intends to tidy up holes in yosemite, and it also has the checkpoints. Added it to level-info, the custom level itself is not in the repository yet.
 
 ### Plans/Todo
-- An fr3 file should be generated from YOS.DGO as well.
-- Game should no longer refuse to load a level if stuff in it has versions that Yosemite's stuff has.
-- Define _yosemite_ level properly.
-- Do some  changes to actor birthing(?) to make Yosemite not crash the game. To make things easier, we could just skip actor birthing for Yosemite somehow, and place our own actors.
-- Add continue-point(s) for Yosemite.
-- Fix the broken actors (racer, water-vol) somehow, or replace them with our own actors.
-- Substitute the missing actors.
-- Add progress menu entry for the level.
-- Add tasks. Need to think more about this, and also consider the technical limitations. A power cell on top of the mountain would probably be easy.
-- Add the red eco vent switch.
-- Create a custom level that we can use for tidying up holes in Yosemite, and helping it connect to the world. This custom level can also be used for placing actors.
+- Re-add the (now cleared) yosemite actors to foyer.
+- Find substitutes for the actors that have no files anywhere in the game.
+- Add progress menu entry for the level (ideally the same for yosemite and foyer).
+- Add tasks. Need to think more about this, and also consider the technical limitations. For example a power cell on top of the mountain would probably be easy. Look at the unused strings for inspiration.
+- Add the red eco vent switch. This will require '-obs' changes. Maybe also invent some actual functionality for red eco? Smashable rock walls maybe?
+- Create and use particles.
 
 ---
 
