@@ -128,7 +128,7 @@
               ((or (not (-> s5-1 force-all-visible?)) (-> s5-1 inside-boxes?))
                ;; we are inside the level's bsp, we should attempt vis stuff.
                (cond
-                 ((or *artist-all-visible* (zero? (-> s5-1 bsp nodes)))
+                 ((or (or *artist-all-visible* (= (-> s5-1 name) 'yosemite)) (zero? (-> s5-1 bsp nodes)))
                   ;; we have no bsp, or manual override all visible. Copy the all vis list
                   ;; to our vis string.
                   (quad-copy! (-> s5-1 vis-bits) (-> s5-1 bsp all-visible-list) a2-0)
