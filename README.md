@@ -27,8 +27,8 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 - Create and use particles.
 
 ### Credits
-[@LuminarLight]: Lead, coding, research.
-[@str-Luke]: Creator of the Foyer level.
+- [LuminarLight](https://github.com/LuminarLight): Lead, coding, research.
+- [str-Luke](https://github.com/str-Luke): Creator of the Foyer level.
 
 ---
 
