@@ -12,15 +12,23 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 - A valid level is now generated from YOS.DGO, though we decided to clear its actors (through code) and do that in another way - the level is just too old.
 - Yosemite will always have "all visible", due to its age, which caused horrible visibility issues.
 - Defined 'yosemite' in level-info, though its checkpoints will be somewhere else due to technical limitations.
-- A custom level 'foyer' was made that intends to tidy up holes in yosemite, and it also has the checkpoints. Added it to level-info, the custom level itself is not in the repository yet.
+- A custom level 'foyer' was made that intends to tidy up holes in yosemite, and it also has the checkpoints. Added it to level-info. Added the glb file, so it is a fully working custom level now.
+- Re-added the (now cleared) yosemite actors to foyer. They need to be cleared up a bit more.
+- All actors placed in foyer will always be visible.
+- Substituted "plainbox" with "crate".
 
 ### Plans/Todo
-- Re-add the (now cleared) yosemite actors to foyer.
-- Find substitutes for the actors that have no files anywhere in the game.
+- Tidy up collision and other holes in Yosemite.
+- Find substitutes for rest of the actors that have no files anywhere in the game.
 - Add progress menu entry for the level (ideally the same for yosemite and foyer).
+- Make Foyer nicer.
 - Add tasks. Need to think more about this, and also consider the technical limitations. For example a power cell on top of the mountain would probably be easy. Look at the unused strings for inspiration.
 - Add the red eco vent switch. This will require '-obs' changes. Maybe also invent some actual functionality for red eco? Smashable rock walls maybe?
 - Create and use particles.
+
+### Credits
+[@LuminarLight]: Lead, coding, research.
+[@str-Luke]: Creator of the Foyer level.
 
 ---
 
