@@ -1469,10 +1469,10 @@
     :continues '((new 'static 'continue-point
         :name "yosemite-foyer"
         :level 'foyer
-        :trans (new 'static 'vector :x (meters 1142.00) :y (meters 51.0) :z (meters -3611) :w 1.0)
-        :quat (new 'static 'quaternion :y -0.7421 :w 0.6702)
-        :camera-trans (new 'static 'vector :x (meters 1097.0738) :y (meters 51.7012) :z (meters -3798.3625) :w 1.0)
-        :camera-rot (new 'static 'array float 9 -0.1558 -0.0000 0.9877 -0.1190 0.9927 -0.0187 -0.9805 -0.1205 -0.1547)
+        :trans (new 'static 'vector :x (meters 1117.7329) :y (meters 48.3809) :z (meters -3612.3889) :w 1.0)
+        :quat (new 'static 'quaternion :y 0.8013 :w 0.5982)
+        :camera-trans (new 'static 'vector :x (meters 1109.8549) :y (meters 52.3022) :z (meters -3612.4338) :w 1.0)
+        :camera-rot (new 'static 'array float 9 0.0040 0.0000 -0.9999 0.1934 0.9811 0.0007 0.9810 -0.1934 0.0039)
         :load-commands '()
         :vis-nick #f
         :lev0 'foyer
