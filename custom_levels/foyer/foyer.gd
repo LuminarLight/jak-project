@@ -1,3 +1,4 @@
+; Based on Yosemite. Deviations are indicated in comments.
 ("FOY.DGO"
   ("mistycannon.o" "mistycannon")
   ("babak-with-cannon.o" "babak-with-cannon")
@@ -6,7 +7,7 @@
   ("racer-part.o" "racer-part")
   ("racer.o" "racer")
   ("target-racer.o" "target-racer")
-  ("racer-states.o" "racer-states")
+  ("racer-states.o" "racer-states") ; This wasn't in original Yosemite. Game must have worked differently back then. But in today's version we need this.
   ("collide-reaction-racer.o" "collide-reaction-racer")
   ("eichar-racer+0-ag.go" "eichar-racer+0")
   ("blocking-plane.o" "blocking-plane")
