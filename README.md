@@ -29,6 +29,7 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 ### Credits
 - [LuminarLight](https://github.com/LuminarLight): Lead, coding, research.
 - [str-Luke](https://github.com/str-Luke): Creator of the Foyer level.
+- [rocket](https://github.com/1rocket1): Initial data processing of Yosemite actors (from csv to jsonc).
 
 ---
 
