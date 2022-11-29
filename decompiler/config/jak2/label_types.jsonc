@@ -516,5 +516,13 @@
   "process-drawable": [
     ["L366", "vector"],
     ["L365", "vector"]
-  ]
+  ],
+  "gun-part": [["L192", "(pointer rgba)", 36]],
+  "target-part": [["L452", "uint64", true]],
+  "target-anim": [["L423", "uint64", true]],
+  "generic-obs": [
+    ["L536", "attack-info"],
+    ["L534", "attack-info"]
+  ],
+  "gun-dark-shot": [["L125", "attack-info"]]
 }
