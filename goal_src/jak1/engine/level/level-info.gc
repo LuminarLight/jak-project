@@ -1454,7 +1454,7 @@
 
 (define foyer
   (new 'static 'level-load-info
-    :index 27
+    :index 24
     :name 'foyer
     :visname 'foyer-vis
     :nickname 'foy
@@ -1510,7 +1510,7 @@
 
 (define yosemite
   (new 'static 'level-load-info
-    :index 28
+    :index 25
     :name 'yosemite
     :visname 'yosemite-vis
     :nickname 'yos
