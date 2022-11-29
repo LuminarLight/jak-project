@@ -1401,6 +1401,19 @@
       "lump": {
         "name":"water-vol-307"
       }
+    },
+	
+	// Our additions
+    {
+      "trans": [955.07, 106.29, -4024.70],
+      "etype": "fuel-cell",
+      "game_task": 106, // red-eggtop
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [955.07, 106.29, -4024.70, 10],
+      "lump": {
+        "name":"fuel-cell-yos-1",
+		"eco-info": ["int32", 6, 106]
+      }
     }
   ]
 }
