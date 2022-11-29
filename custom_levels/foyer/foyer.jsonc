@@ -1404,15 +1404,25 @@
     },
 	
 	// Our additions
-    {
-      "trans": [955.07, 106.29, -4024.70],
-      "etype": "fuel-cell",
+	{
+      "trans": [954.746, 107.33, -4030.44],
+      "etype": "eggtop",
       "game_task": 106, // red-eggtop
       "quat" : [0, 0, 0, 1],
-      "bsphere": [955.07, 106.29, -4024.70, 10],
+      "bsphere": [954.746, 107.33, -4030.44, 10],
       "lump": {
-        "name":"fuel-cell-yos-1",
-		"eco-info": ["int32", 6, 106]
+        "name":"eggtop-yos-1"
+      }
+    },
+	
+	{
+      "trans": [950.21, 100.35, -3960.57],
+      "etype": "camera",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [950.21, 100.35, -3960.57, 10],
+      "lump": {
+        "name":"camera-eggtop-yos"
       }
     }
   ]
