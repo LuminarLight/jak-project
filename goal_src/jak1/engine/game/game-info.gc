@@ -162,7 +162,7 @@
   "Get the permanent storage for a game-task"
   (-> obj task-perm-list data arg0)
   )
-  
+
 (define *game-counts* (the-as game-count-info #f))
 
 (defmethod initialize! game-info ((obj game-info) (cause symbol) (save-to-load game-save) (continue-point-override string))
@@ -225,7 +225,7 @@
                            "demo-start"
                            )
                           (*debug-segment*
-                            "village1-hut"
+                            "yosemite-foyer"
                             )
                           (else
                             "title-start"
