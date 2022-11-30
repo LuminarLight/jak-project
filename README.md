@@ -31,6 +31,7 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 - Create and use particles.
 - Somehow make textures work if tpage is wrong/missing.
 - Find a way to extend/append game-cnt.
+- Currently the game crashes when you return to Yosemite after already having visited it once in the same session. We need to make this not happen.
 
 ### Credits
 - [LuminarLight](https://github.com/LuminarLight): Lead, coding, research.
