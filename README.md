@@ -1,3 +1,5 @@
+## OUTDATED, CHECK THE NEW BRANCH: https://github.com/LuminarLight/jak-project/tree/yosemite-two
+
 # Yosemite Branch
 
 The aim of this modification of OpenGOAL is to re-integrate the cut Yosemite level into the game and finish it. More info about the level: https://jadtech.miraheze.org/wiki/Research:Yosemite
