@@ -1501,7 +1501,7 @@
     :alt-load-commands '()
     :bsp-mask #xffffffffffffffff
     :bsphere (new 'static 'sphere)
-    ;:buzzer 77
+    :buzzer 116
     :bottom-height (meters -20)
     :run-packages '("common")
     :wait-for-load #f
@@ -1529,7 +1529,7 @@
     :alt-load-commands '()
     :bsp-mask #xffffffffffffffff
     :bsphere (new 'static 'sphere)
-    ;:buzzer 77
+    :buzzer 116
     :bottom-height (meters -20)
     :run-packages '("common")
     :wait-for-load #f

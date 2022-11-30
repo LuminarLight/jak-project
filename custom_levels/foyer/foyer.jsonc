@@ -1403,7 +1403,7 @@
       }
     },
 	
-	// Our additions
+//---//---// Our additions //---//---//
 	{
       "trans": [954.746, 107.33, -4030.44],
       "etype": "eggtop",
@@ -1423,6 +1423,91 @@
       "bsphere": [950.21, 100.35, -3960.57, 10],
       "lump": {
         "name":"camera-eggtop-yos"
+      }
+    },
+	
+	{
+      "trans": [950.82, 46.22, -3909.03],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [950.82, 46.22, -3909.03, 10],
+      "lump": {
+        "name": "buzzer-yos-1",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 116]
+      }
+    },
+	{
+      "trans": [945.74, 46.16, -3916.27],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [945.74, 46.16, -3916.27, 10],
+      "lump": {
+        "name": "buzzer-yos-2",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 65652]
+      }
+    },
+	{
+      "trans": [941.35, 46.16, -3923.70],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [941.35, 46.16, -3923.70, 10],
+      "lump": {
+        "name": "buzzer-yos-3",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 131188]
+      }
+    },
+	{
+      "trans": [945.80, 46.22, -3933.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [945.80, 46.22, -3933.28, 10],
+      "lump": {
+        "name": "buzzer-yos-4",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 196724]
+      }
+    },
+	{
+      "trans": [954.84, 46.16, -3928.11],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [954.84, 46.16, -3928.11, 10],
+      "lump": {
+        "name": "buzzer-yos-5",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 262260]
+      }
+    },
+	{
+      "trans": [952.35, 46.16, -3920.99],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [952.35, 46.16, -3920.99, 10],
+      "lump": {
+        "name": "buzzer-yos-6",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 327796]
+      }
+    },
+	{
+      "trans": [957.25, 46.23, -3914.00],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [957.25, 46.23, -3914.00, 10],
+      "lump": {
+        "name": "buzzer-yos-7",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 393332]
       }
     }
   ]
