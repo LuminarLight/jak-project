@@ -1,6 +1,7 @@
 ; Based on Yosemite. Deviations are indicated in comments.
 ("FOY.DGO"
   ("mistycannon.o" "mistycannon")
+  ("yosemite-obs.o" "yosemite-obs") ; Not in original
   ("babak-with-cannon.o" "babak-with-cannon")
   ("blocking-plane.o" "blocking-plane")
   ("target-racer-h.o" "target-racer-h")
@@ -16,5 +17,6 @@
   ("mistycannon-ag.go" "mistycannon")
   ("sack-ag.go" "sack")
   ("racer-ag.go" "racer")
+  ("eggtop-ag.go" "eggtop") ; Not in original
   ("foyer.go" "foyer")
   )

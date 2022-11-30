@@ -1168,11 +1168,11 @@
     },
 
     {
-      "trans": [1088.9304, 44.8055, -3995.7851],
+      "trans": [1088.9304, 46.8055, -3995.7851],
       "etype": "racer",
       "game_task": 0,
       "quat" : [0, 0, 0, 1],
-      "bsphere": [1088.9304, 44.8055, -3995.7851, 10],
+      "bsphere": [1088.9304, 46.8055, -3995.7851, 10],
       "lump": {
         "name":"racer-19"
       }
@@ -1300,12 +1300,12 @@
       }
     },
 
-	// The default quat caused errors when using them. Changed it to something else, but need to refine it for each one to make the direction of spinning correct.
+	// The quat values were acquired manually from the yosemite level file. Converted from hexadecimal to float. It is not 100% precise, but nearly.
     {
       "trans": [1115.8748, 87.3949, -3932.5961],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [-0.2232, -0.2177, 0.6633, 0.6802],
       "bsphere": [1115.8748, 87.3949, -3932.5961, 10],
       "lump": {
         "name":"swingpole-188"
@@ -1315,7 +1315,7 @@
       "trans": [1142.3206, 120.3269, -3922.7976],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [-0.1204, -0.1174, 0.6881, 0.7057],
       "bsphere": [1142.3206, 120.3269, -3922.7976, 10],
       "lump": {
         "name":"swingpole-189"
@@ -1325,7 +1325,7 @@
       "trans": [1141.1862, 125.0751, -3916.6804],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [-0.1204, -0.1174, 0.6881, 0.7057],
       "bsphere": [1141.1862, 125.0751, -3916.6804, 10],
       "lump": {
         "name":"swingpole-190"
@@ -1335,7 +1335,7 @@
       "trans": [1153.4114, 136.7261, -3917.1047],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [-0.1204, -0.1174, 0.6881, 0.7057],
       "bsphere": [1153.4114, 136.7261, -3917.1047, 10],
       "lump": {
         "name":"swingpole-191"
@@ -1345,7 +1345,7 @@
       "trans": [1181.8436, 71.0487, -3821.0002],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [0.5114, 0.4986, 0.4885, 0.5010],
       "bsphere": [1181.8436, 71.0487, -3821.0002, 10],
       "lump": {
         "name":"swingpole-192"
@@ -1355,7 +1355,7 @@
       "trans": [1175.8032, 64.3409, -3819.8952],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [0.5114, 0.4986, 0.4885, 0.5010],
       "bsphere": [1175.8032, 64.3409, -3819.8952, 10],
       "lump": {
         "name":"swingpole-193"
@@ -1365,7 +1365,7 @@
       "trans": [1150.4312, 127.8260, -3933.1533],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [-0.3365, -0.3281, 0.6162, 0.6319],
       "bsphere": [1150.4312, 127.8260, -3933.1533, 10],
       "lump": {
         "name":"swingpole-194"
@@ -1375,7 +1375,7 @@
       "trans": [987.9641, 72.3504, -3955.9755],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [0.3953, 0.3779, 0.5785, 0.6050],
       "bsphere": [987.9641, 72.3504, -3955.9755, 10],
       "lump": {
         "name":"swingpole-195"
@@ -1385,7 +1385,7 @@
       "trans": [1016.2459, 95.0530, -3935.3310],
       "etype": "swingpole",
       "game_task": 0,
-      "quat" : [1, 1, 1, 1],
+      "quat" : [-0.1546, -0.1479, 0.6750, 0.7060],
       "bsphere": [1016.2459, 95.0530, -3935.3310, 10],
       "lump": {
         "name":"swingpole-196"
@@ -1400,6 +1400,114 @@
       "bsphere": [1228.8596, 46.5530, -4020.9331, 10],
       "lump": {
         "name":"water-vol-307"
+      }
+    },
+	
+//---//---// Our additions //---//---//
+	{
+      "trans": [954.746, 107.33, -4030.44],
+      "etype": "eggtop",
+      "game_task": 106, // red-eggtop
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [954.746, 107.33, -4030.44, 10],
+      "lump": {
+        "name":"eggtop-yos-1"
+      }
+    },
+	
+	{
+      "trans": [958.0537, 101.1769, -3969.6601],
+      "etype": "camera",
+      "game_task": 0,
+      "quat" : [-0.000427, -0.9995305, -0.0165552, -0.0257782],
+      "bsphere": [958.0537, 101.1769, -3969.6601, 10],
+      "lump": {
+        "name":"camera-eggtop-yos"
+      }
+    },
+	
+	{
+      "trans": [950.82, 46.22, -3909.03],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [950.82, 46.22, -3909.03, 10],
+      "lump": {
+        "name": "buzzer-yos-1",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 116]
+      }
+    },
+	{
+      "trans": [945.74, 46.16, -3916.27],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [945.74, 46.16, -3916.27, 10],
+      "lump": {
+        "name": "buzzer-yos-2",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 65652]
+      }
+    },
+	{
+      "trans": [941.35, 46.16, -3923.70],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [941.35, 46.16, -3923.70, 10],
+      "lump": {
+        "name": "buzzer-yos-3",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 131188]
+      }
+    },
+	{
+      "trans": [945.80, 46.22, -3933.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [945.80, 46.22, -3933.28, 10],
+      "lump": {
+        "name": "buzzer-yos-4",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 196724]
+      }
+    },
+	{
+      "trans": [954.84, 46.16, -3928.11],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [954.84, 46.16, -3928.11, 10],
+      "lump": {
+        "name": "buzzer-yos-5",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 262260]
+      }
+    },
+	{
+      "trans": [952.35, 46.16, -3920.99],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [952.35, 46.16, -3920.99, 10],
+      "lump": {
+        "name": "buzzer-yos-6",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 327796]
+      }
+    },
+	{
+      "trans": [957.25, 46.23, -3914.00],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [957.25, 46.23, -3914.00, 10],
+      "lump": {
+        "name": "buzzer-yos-7",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 393332]
       }
     }
   ]

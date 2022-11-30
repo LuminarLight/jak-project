@@ -180,6 +180,8 @@
     15 ;; finalboss?
     4 ;; demo?
     4 ;; intro?
+    16 ;; foyer 24
+    16 ;; yosemite
     )
   )
 
@@ -1354,6 +1356,35 @@
                         )
                    )
               )
+         (new 'static 'level-tasks-info
+              :level-name-id (game-text-id village3-poi-yosemite)
+              :text-group-index 3
+              :nb-of-tasks 2
+              :buzzer-task-index 1
+              :task-info
+              (new 'static 'array task-info-data 8
+                   (new 'static 'task-info-data
+                        :task-id (game-task red-eggtop)
+                        :task-name
+                        (new 'static 'array game-text-id 4
+                             (game-text-id red-eggtop)
+                             (game-text-id red-eggtop)
+                             (game-text-id red-eggtop)
+                             (game-text-id zero)
+                             )
+                        )
+                   (new 'static 'task-info-data
+                        :task-id (game-task yosemite-buzzer)
+                        :task-name
+                        (new 'static 'array game-text-id 4
+                             (game-text-id generic-buzzer)
+                             (game-text-id generic-buzzer)
+                             (game-text-id generic-buzzer)
+                             (game-text-id zero)
+                             )
+                        )
+                   )
+              )
          )
   )
 
@@ -1372,7 +1403,7 @@
          )
   )
 
-(define *game-counts* (the-as game-count-info #f))
+;(define *game-counts* (the-as game-count-info #f))
 
 
 

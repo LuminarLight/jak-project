@@ -1454,13 +1454,13 @@
 
 (define foyer
   (new 'static 'level-load-info
-    :index 27
+    :index 24
     :name 'foyer
     :visname 'foyer-vis
     :nickname 'foy
     :packages '(foyer)
-    :sound-banks '()
-    :music-bank 'village1
+    :sound-banks '(misty)
+    :music-bank #f
     :ambient-sounds '()
     :mood '*village1-mood*
     :mood-func 'update-mood-default
@@ -1501,7 +1501,7 @@
     :alt-load-commands '()
     :bsp-mask #xffffffffffffffff
     :bsphere (new 'static 'sphere)
-    ;:buzzer 77
+    :buzzer 116
     :bottom-height (meters -20)
     :run-packages '("common")
     :wait-for-load #f
@@ -1510,13 +1510,13 @@
 
 (define yosemite
   (new 'static 'level-load-info
-    :index 28
+    :index 25
     :name 'yosemite
     :visname 'yosemite-vis
     :nickname 'yos
     :packages '(yosemite)
-    :sound-banks '()
-    :music-bank 'village1
+    :sound-banks '(misty)
+    :music-bank #f
     :ambient-sounds '()
     :mood '*village1-mood*
     :mood-func 'update-mood-default
@@ -1529,7 +1529,7 @@
     :alt-load-commands '()
     :bsp-mask #xffffffffffffffff
     :bsphere (new 'static 'sphere)
-    ;:buzzer 77
+    :buzzer 116
     :bottom-height (meters -20)
     :run-packages '("common")
     :wait-for-load #f

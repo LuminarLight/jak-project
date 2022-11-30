@@ -163,12 +163,16 @@
   (-> obj task-perm-list data arg0)
   )
 
+(define *game-counts* (the-as game-count-info #f))
+
 (defmethod initialize! game-info ((obj game-info) (cause symbol) (save-to-load game-save) (continue-point-override string))
   "Initialize the game-info.
     The cause can be 'dead if you die, or 'game to reset everything.
     If save-to-load is not #f will load data from that.
     If continue-point-override is not #f, will use that."
 
+  (set! (-> *game-counts* data 16 money-count) (the-as int 69))
+  (set! (-> *game-counts* data 16 buzzer-count) (the-as int 7))
   (local-vars (v0-0 int) (sv-96 symbol))
   (case cause
     (('dead)
@@ -221,7 +225,7 @@
                            "demo-start"
                            )
                           (*debug-segment*
-                            "village1-hut"
+                            "yosemite-foyer"
                             )
                           (else
                             "title-start"
@@ -246,7 +250,7 @@
      (set! (-> obj continue-time) (-> *display* base-frame-counter))
      (set! (-> obj death-time) (-> *display* base-frame-counter))
      (set! (-> obj hit-time) (-> *display* base-frame-counter))
-     (dotimes (v1-50 116)
+     (dotimes (v1-50 (game-task max))
        (set! (-> obj fuel-cell-time 0) 0)
        (nop!)
        )
@@ -916,7 +920,7 @@
   (inspect obj)
   (when (or (not arg0) (= arg0 'game-task))
     (format #t "~Tgame-task:~%")
-    (dotimes (s4-0 116)
+    (dotimes (s4-0 (game-task max))
       (if (task-complete? obj (the-as game-task s4-0))
           (format #t "~T~T~S~%" (game-task->string (the-as game-task s4-0)))
           )
@@ -944,7 +948,7 @@
 
   ;; task perms
   (when (zero? (-> gp-0 task-perm-list))
-    (let ((v1-15 (new 'global 'entity-perm-array 116)))
+    (let ((v1-15 (new 'global 'entity-perm-array (the-as int (game-task max)))))
       (set! (-> gp-0 task-perm-list) v1-15)
       (dotimes (a0-24 (-> v1-15 length))
         (set! (-> v1-15 data a0-24 task) (the-as game-task a0-24))
