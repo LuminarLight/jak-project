@@ -16,21 +16,22 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 - Re-added the (now cleared) yosemite actors to foyer. They need to be cleared up a bit more.
 - All actors placed in foyer will always be visible.
 - Substituted "plainbox" with "crate".
-- Yosemite has a menu entry, reusing its original name, Rock Lake. Also added the 'red-eggtop' task to the level.
+- Yosemite has a menu entry, reusing its original name, Rock Lake.
+- Added the 'red-eggtop' task to the level, along with a scoutfly task.
+- Placed 7 scoutflies in the level, at a temporary location.
+- Orb and fly counts display properly in the menu, taking into account the new ones we added.
 - Added a custom Red Eco Vent Switch to the level (based on the blue one). Not perfect, but still good. 
 
 ### Plans/Todo
 - Tidy up collision and other holes in Yosemite.
 - Find substitutes for rest of the actors that have no files anywhere in the game.
 - Fix water.
-- Add scoutfly task to level (and scoutflies)
 - Add more tasks.
 - Make Foyer nicer.
 - Maybe invent some actual functionality for red eco? Smashable rock walls maybe?
 - Create and use particles.
 - Somehow make textures work if tpage is wrong/missing.
-- Find a way to extend/append game-cnt.
-- Currently the game crashes when you return to Yosemite after already having visited it once in the same session. We need to make this not happen.
+- Unexpected game crashes when loading levels, after already visiting yosemite once. Need to investigate.
 
 ### Credits
 - [LuminarLight](https://github.com/LuminarLight): Lead, coding, research.
