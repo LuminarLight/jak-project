@@ -22,7 +22,6 @@ Grab YOS.DGO from the _Jak TPL September 2001 Preview build_'s DGO folder, and p
 ### Plans/Todo
 - Tidy up collision and other holes in Yosemite.
 - Find substitutes for rest of the actors that have no files anywhere in the game.
-- Fix swingpole quats.
 - Fix water.
 - Add scoutfly task to level (and scoutflies)
 - Add more tasks.
