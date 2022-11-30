@@ -1459,8 +1459,8 @@
     :visname 'foyer-vis
     :nickname 'foy
     :packages '(foyer)
-    :sound-banks '()
-    :music-bank 'village1
+    :sound-banks '(misty)
+    :music-bank #f
     :ambient-sounds '()
     :mood '*village1-mood*
     :mood-func 'update-mood-default
@@ -1515,8 +1515,8 @@
     :visname 'yosemite-vis
     :nickname 'yos
     :packages '(yosemite)
-    :sound-banks '()
-    :music-bank 'village1
+    :sound-banks '(misty)
+    :music-bank #f
     :ambient-sounds '()
     :mood '*village1-mood*
     :mood-func 'update-mood-default
