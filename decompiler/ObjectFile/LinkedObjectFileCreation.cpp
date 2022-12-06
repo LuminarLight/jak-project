@@ -263,13 +263,13 @@ static void link_v2_or_v4(LinkedObjectFile& f,
   const uint8_t* code_end =
       &data.at(code_offset + code_size - 1) + 1;  // get the pointer to one past the end.
 
-  if (version == GameVersion::Jak2) {
+  //if (version == GameVersion::Jak2) {
     while (((code_end - code_start) % 4)) {
       code_end++;
     }
-  }
+  //}
 
-  ASSERT(((code_end - code_start) % 4) == 0);
+  //ASSERT(((code_end - code_start) % 4) == 0);
   f.set_segment_count(1);
   for (auto x = code_start; x < code_end; x += 4) {
     f.push_back_word_to_segment(*((const uint32_t*)x), 0);

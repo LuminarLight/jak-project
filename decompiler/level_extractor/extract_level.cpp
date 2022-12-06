@@ -25,7 +25,8 @@ std::optional<ObjectFileRecord> get_bsp_file(const std::vector<ObjectFileRecord>
   std::optional<ObjectFileRecord> result;
   bool found = false;
   for (auto& file : records) {
-    if (file.name.length() > 4 && file.name.substr(file.name.length() - 4) == "-vis") {
+    if ((file.name.length() > 4 && file.name.substr(file.name.length() - 4) == "-vis") ||
+        file.name == "bs") {
       ASSERT(!found);
       found = true;
       result = file;

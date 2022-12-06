@@ -775,7 +775,7 @@ void GLDisplay::update_glfw() {
   auto vmodes = glfwGetVideoModes(monitor, &count);
 
   if (count > MAX_VMODES) {
-    fmt::print("got too many vmodes: {}\n", count);
+    //fmt::print("got too many vmodes: {}\n", count);
     count = MAX_VMODES;
   }
 

@@ -13,6 +13,7 @@
     "CGO/GAME.CGO",
     "CGO/ART.CGO",
     "DGO/BEA.DGO",
+    "DGO/BS.DGO",
     "DGO/CIT.DGO",
     "CGO/COMMON.CGO",
     "DGO/DAR.DGO",
@@ -275,6 +276,7 @@
 
   "levels_to_extract": [
     "BEA.DGO",
+    "BS.DGO",
     "CIT.DGO",
     "DAR.DGO",
     "DEM.DGO",
