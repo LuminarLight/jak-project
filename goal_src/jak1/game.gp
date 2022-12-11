@@ -1379,8 +1379,6 @@
 
 (cgo "YOS.DGO" "yos.gd")
 
-(copy-vis-files "YOS")
-
 (copy-textures 1332 1334 1333 1331)
 
 (copy-gos
