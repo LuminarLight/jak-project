@@ -1536,6 +1536,34 @@
     )
   )
 
+(define tofoyer
+  (new 'static 'level-load-info
+    :index 26
+    :name 'tofoyer
+    :visname 'tofoyer-vis
+    :nickname 'tof
+    :packages '(tofoyer)
+    :sound-banks '(misty)
+    :music-bank #f
+    :ambient-sounds '()
+    :mood '*default-mood*
+    :mood-func 'update-mood-default
+    :ocean #f
+    :sky #t
+    :continues '()
+    :tasks '()
+    :priority 100
+    :load-commands '()
+    :alt-load-commands '()
+    :bsp-mask #xffffffffffffffff
+    :bsphere (new 'static 'sphere)
+    :buzzer 116
+    :bottom-height (meters -20)
+    :run-packages '("common")
+    :wait-for-load #f
+    )
+  )
+
 (define lavatube
   (new 'static 'level-load-info
     :index 19
@@ -2044,6 +2072,7 @@
                              robocave
                              foyer
                              yosemite
+                             tofoyer
                              lavatube
                              citadel
                              finalboss

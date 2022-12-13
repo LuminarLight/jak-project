@@ -1393,6 +1393,13 @@
 (custom-level-cgo "FOY.DGO" "foyer/foyer.gd")
 
 ;;;;;;;;;;;;;;;;;;;;;
+;; tofoyer
+;;;;;;;;;;;;;;;;;;;;;
+
+(build-custom-level "tofoyer")
+(custom-level-cgo "TOF.DGO" "tofoyer/tofoyer.gd")
+
+;;;;;;;;;;;;;;;;;;;;;
 ;; lavatube
 ;;;;;;;;;;;;;;;;;;;;;
 
