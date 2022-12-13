@@ -225,7 +225,7 @@
                            "demo-start"
                            )
                           (*debug-segment*
-                            "yosemite-foyer"
+                            "snow-by-ice-lake"
                             )
                           (else
                             "title-start"
