@@ -127,5 +127,7 @@
   (plunger-lurker-hit 113)
   (leaving-misty 114)
   (assistant-village3 115)
-  (max 116)
+  (a22dec28-buzzer 116)
+  (a22dec28-findcell 117)
+  (max 118)
   )

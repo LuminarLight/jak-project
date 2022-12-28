@@ -361,6 +361,12 @@
 
 (#x1501 "CUTSCENE SKIPS"
         "CUTSCENE SKIPS")
+		
+(#x1600 "HEAVEN"
+        "HEAVEN")
+		
+(#x1601 "FIND THE VERY VERY WELL-HIDDEN POWER CELL!"
+        "FIND THE VERY VERY WELL-HIDDEN POWER CELL!")
 
 ;; -----------------
 ;; test (DO NOT TRANSLATE)

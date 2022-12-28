@@ -1,0 +1,264 @@
+{
+  // The "in-game" name of the level. Should be lower case, with dashes (GOAL symbol name)
+  // the name of this file, and the folder this file is in must have the same name.
+  "long_name": "a22dec28",
+  // The file name, should be upper case and 8 characters or less.
+  "iso_name": "A22DEC28",
+  // The nickname, should be exactly 3 characters
+  "nickname": "D28", // 3 char name, all uppercase
+  // Background mesh file.
+  // Must have vertex colors. Use the blender cycles renderer, bake, diffuse, uncheck color,
+  // and bake to vertex colors. For now, only the first vertex color group is used, so make sure you
+  // only have 1.
+  "gltf_file": "custom_levels/a22dec28/a22dec28.glb",
+
+  // automatically set wall vs. ground based on angle. Useful if you don't want to assign this yourself
+  "automatic_wall_detection": true,
+  "automatic_wall_angle": 45.0,
+
+  // if your mesh has triangles with incorrect orientation, set this to make all collision mesh triangles double sided
+  // this makes collision 2x slower and bigger, so only use if really needed
+  "double_sided_collide": false,
+
+  // available res-lump tag data types:
+  // int32, float, meters, vector, vector4m (meters)
+  //
+  // examples:
+  //
+  // adds a float tag 'spring-height' with value of 200 meters (1 meter = 4096.0 units):
+  // "spring-height": ["meters", 200.0]
+  //
+  // adds a vector tag 'movie-pos':
+  // "movie-pos": ["vector", [4096000.0, -176128.0, 1353973.76, 1.0]]
+
+  "actors" : [
+    {
+      "trans": [2711.62, 1, -644.01], // translation
+      "etype": "fuel-cell",  // actor type
+      "game_task": 117, // associated game task (for powercells, etc)
+      "quat" : [0, 0, 0, 1], // quaternion
+      "bsphere": [2711.62, 0.25, -644.01, 10], // bounding sphere
+      "lump": {
+        "name":"test-fuel-cell",
+		"eco-info": ["int32", 6, 117]
+      }
+    },
+	
+	{
+      "trans": [2735, 5, -600.97], // translation
+      "etype": "flutflut",  // actor type
+      "game_task": 0, // associated game task (for powercells, etc)
+      "quat" : [0, 0, 0, 1], // quaternion
+      "bsphere": [2735, 5, -600.97, 10], // bounding sphere
+      "lump": {
+        "name":"flutfluthaha"
+      }
+    },
+	
+	{
+      "trans": [2798.91, 0.25, -591.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2798.91, 0.25, -591.28, 10],
+      "lump": {
+        "name": "buzzer-yos-1",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 116]
+      }
+    },
+	{
+      "trans": [2793.91, 0.25, -591.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2793.91, 0.25, -591.28, 10],
+      "lump": {
+        "name": "buzzer-yos-2",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 65652]
+      }
+    },
+	{
+      "trans": [2798.91, 0.25, -596.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2798.91, 0.25, -596.28, 10],
+      "lump": {
+        "name": "buzzer-yos-3",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 131188]
+      }
+    },
+	{
+      "trans": [2793.91, 0.25, -596.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2793.91, 0.25, -596.28, 10],
+      "lump": {
+        "name": "buzzer-yos-4",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 196724]
+      }
+    },
+	{
+      "trans": [2803.91, 0.25, -596.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2803.91, 0.25, -596.28, 10],
+      "lump": {
+        "name": "buzzer-yos-5",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 262260]
+      }
+    },
+	{
+      "trans": [2808.91, 0.25, -596.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2808.91, 0.25, -596.28, 10],
+      "lump": {
+        "name": "buzzer-yos-6",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 327796]
+      }
+    },
+	{
+      "trans": [2803.91, 0.25, -591.28],
+      "etype": "crate",
+      "game_task": 116,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2803.91, 0.25, -591.28, 10],
+      "lump": {
+        "name": "buzzer-yos-7",
+        "crate-type":"'iron",
+        "eco-info": ["int32", 8, 393332]
+      }
+    },
+	
+	{
+      "trans": [2751.33, 1, -560.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2751.33, 1, -560.32, 10],
+      "lump": {
+        "name":"money-heaven-1"
+      }
+    },
+	{
+      "trans": [2751.33, 1, -563.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2751.33, 1, -563.32, 10],
+      "lump": {
+        "name":"money-heaven-2"
+      }
+    },
+	{
+      "trans": [2751.33, 1, -566.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2751.33, 1, -566.32, 10],
+      "lump": {
+        "name":"money-heaven-3"
+      }
+    },
+	{
+      "trans": [2754.33, 1, -560.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2754.33, 1, -560.32, 10],
+      "lump": {
+        "name":"money-heaven-4"
+      }
+    },
+	{
+      "trans": [2754.33, 1, -563.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2754.33, 1, -563.32, 10],
+      "lump": {
+        "name":"money-heaven-5"
+      }
+    },
+	{
+      "trans": [2754.33, 1, -566.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2754.33, 1, -566.32, 10],
+      "lump": {
+        "name":"money-heaven-6"
+      }
+    },
+	{
+      "trans": [2751.33, 3, -560.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2751.33, 3, -560.32, 10],
+      "lump": {
+        "name":"money-heaven-7"
+      }
+    },
+	{
+      "trans": [2751.33, 3, -563.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2751.33, 3, -563.32, 10],
+      "lump": {
+        "name":"money-heaven-8"
+      }
+    },
+	{
+      "trans": [2751.33, 3, -566.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2751.33, 3, -566.32, 10],
+      "lump": {
+        "name":"money-heaven-9"
+      }
+    },
+	{
+      "trans": [2754.33, 3, -560.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2754.33, 3, -560.32, 10],
+      "lump": {
+        "name":"money-heaven-10"
+      }
+    },
+	{
+      "trans": [2754.33, 3, -563.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2754.33,31, -563.32, 10],
+      "lump": {
+        "name":"money-heaven-11"
+      }
+    },
+	{
+      "trans": [2754.33, 3, -566.32],
+      "etype": "money",
+      "game_task": 0,
+      "quat" : [0, 0, 0, 1],
+      "bsphere": [2754.33, 3, -566.32, 10],
+      "lump": {
+        "name":"money-heaven-12"
+      }
+    }
+  ]
+}
