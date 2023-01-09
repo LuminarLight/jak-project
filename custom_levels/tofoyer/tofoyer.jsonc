@@ -6,6 +6,7 @@
   "automatic_wall_detection": true,
   "automatic_wall_angle": 45.0,
   "double_sided_collide": false,
+  "base_id": 2000,
 
   "actors" : [
     
