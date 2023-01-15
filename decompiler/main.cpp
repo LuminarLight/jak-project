@@ -19,6 +19,7 @@
 #include "decompiler/level_extractor/extract_level.h"
 
 #include "third-party/CLI11.hpp"
+#include "third-party/json.hpp"
 
 int main(int argc, char** argv) {
   ArgumentGuard u8_guard(argc, argv);
@@ -176,9 +177,24 @@ int main(int argc, char** argv) {
                          config.write_hex_near_instructions);
   }
 
-  // process art groups (used in decompilation)
-  if (config.decompile_code || config.process_art_groups) {
+  if (config.process_art_groups) {
     db.extract_art_info();
+    // dumb art info to json if requested
+    if (config.dump_art_group_info) {
+      auto file_name = out_folder / "dump" / "art-group-info.min.json";
+      nlohmann::json json = db.dts.art_group_info;
+      file_util::create_dir_if_needed_for_file(file_name);
+      file_util::write_text_file(file_name, json.dump(-1));
+      lg::info("[DUMP] Dumped art group info to {}", file_name.string());
+    }
+  } else if (!config.art_group_info_dump.empty()) {
+    // process art groups (used in decompilation)
+    // - if the config has a path to the art info dump, just use that
+    // - otherwise (or if we want to dump it fresh) extract it
+    db.dts.art_group_info = config.art_group_info_dump;
+  } else {
+    lg::error("`process_art_groups` was false and no art-group-info dump was provided!");
+    return 1;
   }
 
   // main decompile.

@@ -175,6 +175,9 @@
              :out `(,out-name))
     out-name))
 
+(defmacro copy-strs (&rest strs)
+  `(begin ,@(apply (lambda (x) `(set! *all-str* (cons (copy-iso-file ,x "STR/" ".STR") *all-str*))) strs)))
+
 (defmacro copy-sbk-files (&rest files)
   `(begin ,@(apply (lambda (x) `(set! *all-sbk* (cons (copy-iso-file ,x "SBK/" ".SBK") *all-sbk*))) files)))
 
@@ -251,7 +254,17 @@
   "dma/dma-buffer.gc"
   "dma/dma-bucket.gc"
   "dma/dma-disasm.gc"
-  "ps2/pad.gc"
+  )
+
+(goal-src "engine/ps2/pad.gc" "pckernel-h")
+
+(goal-src-sequence
+ ;; prefix
+ "engine/"
+
+ :deps
+ ("$OUT/obj/pad.o"
+  "$OUT/obj/dma-disasm.o")
   "gfx/hw/gs.gc"
   "gfx/hw/display-h.gc"
   "geometry/geometry.gc"
@@ -557,7 +570,18 @@
   "gfx/background/prototype.gc"
   "collide/main-collide.gc"
   "gfx/hw/video.gc"
-  "game/main.gc"
+  )
+
+(goal-src "engine/game/main.gc" "pckernel" "video")
+
+(goal-src-sequence
+ ;; prefix
+ "engine/"
+
+ :deps
+ ("$OUT/obj/main.o"
+  "$OUT/obj/video.o")
+
   "collide/collide-cache.gc"
   "collide/collide-debug.gc"
   "entity/relocate.gc"
@@ -1736,7 +1760,6 @@
   "levels/common/enemy/hover/flamer.gc"
   "levels/dig/dig-digger.gc"
   "levels/dig/dig-obs.gc"
-  ;; "levels/dig/dig1-obs.gc"
   "levels/dig/dig2-obs.gc"
   "levels/dig/dig3-obs.gc"
   "levels/common/enemy/baby_spider/tomb-baby-spider.gc"
@@ -1772,16 +1795,13 @@
 ;; ;; D3B
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "D3B.DGO" "d3b.gd")
+(cgo "D3B.DGO" "d3b.gd")
 
-;; (copy-textures 2406 2407 3548)
+(copy-textures 2406 2407 3548)
 
-;; (copy-gos
-;;   "jak-pole+0-ag"
-;;   "daxter-highres-ag"
-;;   "jak-highres-ag"
-;;   "dig3b-vis"
-;;   )
+(copy-gos
+  "dig3b-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; DEMO
@@ -1813,31 +1833,19 @@
 (goal-src-sequence
   ""
   :deps ("$OUT/obj/los-control.o")
-  ;; "levels/dig/dig-digger.gc"
-  ;; "levels/dig/dig-obs.gc"
   "levels/dig/dig1-obs.gc"
-  ;; "levels/dig/dig2-obs.gc"
-  ;; "levels/dig/dig3-obs.gc"
-  ;; "levels/common/enemy/baby_spider/tomb-baby-spider.gc"
-  ;; "levels/common/enemy/metalhead_slinger/grenadier.gc"
-  ;; "levels/common/enemy/metalhead_brown/metalmonk.gc"
-  ;; "levels/dig/dig-texture.gc"
-  ;; "levels/dig/dig-scenes.gc"
-  ;; "levels/dig/dig-part.gc"
   )
 
 (copy-textures 2282 2284 2283 2419 2844)
 
 (copy-gos
   "dig-digger-ag"
-  ;; "crimson-guard-ag"
   "dig-bomb-crate-ag"
   "dig-conveyor-ag"
   "dig-clasp-ag"
   "dig-tether-ag"
   "dig-jump-pad-ag"
   "dig-breakable-door-ag"
-  ;; "dig-sinking-plat-ag"
   "dig-clasp-b-ag"
   "dig-bomb-crate-cylinder-ag"
   "dig1-vis"
@@ -1915,28 +1923,28 @@
 ;; ;; DRI
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "DRI.DGO" "dri.gd")
+(cgo "DRI.DGO" "dri.gd")
 
-;; (copy-textures 1204 1205 1239 1203 1206)
+(copy-textures 1204 1205 1239 1203 1206)
 
-;; (copy-gos
-;;   "centurion-ag"
-;;   "drill-turret-ext-ag"
-;;   "mech-ag"
-;;   "port-turret-ag"
-;;   "ginsu-ag"
-;;   "drill-elevator-ag"
-;;   "drill-plat-falling-ag"
-;;   "drill-bridge-shot-ag"
-;;   "warp-gate-ag"
-;;   "drill-elevator-base-ag"
-;;   "drill-wall-ag"
-;;   "drill-metalhead-eggs-c-ag"
-;;   "drill-metalhead-eggs-b-ag"
-;;   "drill-metalhead-eggs-a-ag"
-;;   "drill-turret-int-ag"
-;;   "drill-vis"
-;;   )
+(copy-gos
+  "centurion-ag"
+  ;; "drill-turret-ext-ag"
+  ;; "mech-ag"
+  ;; "port-turret-ag"
+  "ginsu-ag"
+  "drill-elevator-ag"
+  "drill-plat-falling-ag"
+  "drill-bridge-shot-ag"
+  ;; "warp-gate-ag"
+  "drill-elevator-base-ag"
+  ;; "drill-wall-ag"
+  ;; "drill-metalhead-eggs-c-ag"
+  ;; "drill-metalhead-eggs-b-ag"
+  ;; "drill-metalhead-eggs-a-ag"
+  ;; "drill-turret-int-ag"
+  "drill-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; DRILLMTN
@@ -2090,20 +2098,20 @@
 ;; ;; FOB
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "FOB.DGO" "fob.gd")
+(cgo "FOB.DGO" "fob.gd")
 
-;; (copy-textures 2280 2574 2281 3262 3417)
+(copy-textures 2280 2574 2281 3262 3417)
 
-;; (copy-gos
-;;   "youngsamos-forestb+0-ag"
-;;   "daxter-highres-ag"
-;;   "youngsamos-highres-ag"
-;;   "jak-highres-ag"
-;;   "crimson-guard-hover-ag"
-;;   "transport-ag"
-;;   "life-seed-ag"
-;;   "forestb-vis"
-;;   )
+(copy-gos
+  "youngsamos-forestb+0-ag"
+  ;; "daxter-highres-ag"
+  "youngsamos-highres-ag"
+  ;; "jak-highres-ag"
+  ;; "crimson-guard-hover-ag"
+  ;; "transport-ag"
+  ;; "life-seed-ag"
+  "forestb-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; FOR
@@ -2140,50 +2148,36 @@
 ;; ;; FORDUMPC
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "FORDUMPC.DGO" "fordumpc.gd")
+(cgo "FORDUMPC.DGO" "fordumpc.gd")
 
-;; (goal-src-sequence
-;;   ""
-;;   :deps ("$OUT/obj/los-control.o")
-;;   "levels/fortress/ammo_dump/fordumpa-texture.gc"
-;;   "levels/fortress/ammo_dump/fort-robotank-turret.gc"
-;;   "levels/fortress/ammo_dump/fort-robotank.gc"
-;;   "levels/fortress/ammo_dump/fordumpc-part.gc"
-;;   "levels/fortress/ammo_dump/fordumpc-obs.gc"
-;;   "levels/fortress/ammo_dump/fortress-scenes.gc"
-;;   )
+(goal-src-sequence
+  ""
+  :deps ("$OUT/obj/los-control.o")
+  "levels/fortress/ammo_dump/fordumpc-part.gc"
+  "levels/fortress/ammo_dump/fordumpc-obs.gc"
+  "levels/fortress/ammo_dump/fortress-scenes.gc"
+  )
 
-;; (copy-textures 1570 1573 1571 2917 2847)
+(copy-textures 1570 1573 1571 2917 2847)
 
-;; (copy-gos
-;;   "daxter-highres-ag"
-;;   "jak-highres-ag"
-;;   "fort-robotank-ag"
-;;   "fort-missile-target-ag"
-;;   "fort-robotank-top-ag"
-;;   "fort-roboscreen-ag"
-;;   "fort-missile-ag"
-;;   "fort-robotank-sight-ag"
-;;   "fort-dump-bomb-a-ag"
-;;   "particleman-ag"
-;;   "fordumpc"
-;;   )
+(copy-gos
+  "fort-missile-target-ag"
+  "fort-missile-ag"
+  "fort-dump-bomb-a-ag"
+  "fordumpc"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; FORDUMPD
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "FORDUMPD.DGO" "fordumpd.gd")
+(cgo "FORDUMPD.DGO" "fordumpd.gd")
 
-;; (copy-textures 1574)
+(copy-textures 1574)
 
-;; (copy-gos
-;;   "crimson-guard-highres-ag"
-;;   "crimson-guard-lowres-ag"
-;;   "grunt-fma-ag"
-;;   "palmpilot-ag"
-;;   "fordumpd"
-;;   )
+(copy-gos
+  "fordumpd"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; FRA
@@ -2229,10 +2223,8 @@
 (goal-src-sequence
   ""
   :deps ("$OUT/obj/los-control.o")
-  ;; "levels/common/entities/fort-floor-spike.gc"
   "levels/fortress/rescue/forrescb-part.gc"
   "levels/fortress/rescue/forrescb-obs.gc"
-  ;; "levels/fortress/fort-turret.gc"
   "levels/common/entities/spydroid.gc"
   )
 
@@ -2240,8 +2232,6 @@
 
 (copy-gos
   "spydroid-ag"
-  ;; "fort-turret-ag"
-  ;; "cty-guard-turret-button-ag"
   "fort-elec-belt-ag"
   "forrescb-vis"
   )
@@ -2856,24 +2846,24 @@
 ;;   "loutcstb"
 ;;   )
 
-;; ;;;;;;;;;;;;;;;;;;;;;
-;; ;; LPACKAGE
-;; ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;
+;; LPACKAGE
+;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "LPACKAGE.DGO" "lpackage.gd")
+(cgo "LPACKAGE.DGO" "lpackage.gd")
 
-;; (goal-src-sequence
-;;   ""
-;;   :deps ("$OUT/obj/los-control.o")
-;;   "levels/city/misc/delivery/delivery-task.gc"
-;;   )
+(goal-src-sequence
+  ""
+  :deps ("$OUT/obj/los-control.o")
+  "levels/city/misc/delivery/delivery-task.gc"
+  )
 
-;; (copy-textures 2459)
+(copy-textures 2459)
 
-;; (copy-gos
-;;   "krew-package-ag"
-;;   "lpackage"
-;;   )
+(copy-gos
+  "krew-package-ag"
+  "lpackage"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; LPORTRUN
@@ -3066,20 +3056,20 @@
 ;; ;; LSACK
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "LSACK.DGO" "lsack.gd")
+(cgo "LSACK.DGO" "lsack.gd")
 
-;; (goal-src-sequence
-;;   ""
-;;   :deps ("$OUT/obj/los-control.o")
-;;   "levels/city/misc/collection_task/collection-task.gc"
-;;   )
+(goal-src-sequence
+  ""
+  :deps ("$OUT/obj/los-control.o")
+  "levels/city/misc/collection_task/collection-task.gc"
+  )
 
-;; (copy-textures 2605)
+(copy-textures 2605)
 
-;; (copy-gos
-;;   "krew-moneybag-ag"
-;;   "lsack"
-;;   )
+(copy-gos
+  "krew-moneybag-ag"
+  "lsack"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; LSAMERGD
@@ -3232,16 +3222,16 @@
 ;; ;; LTRNYSAM
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "LTRNYSAM.DGO" "ltrnysam.gd")
+(cgo "LTRNYSAM.DGO" "ltrnysam.gd")
 
-;; (copy-textures 1774 3255)
+(copy-textures 1774 3255)
 
-;; (copy-gos
-;;   "youngsamos-ltrnysam+0-ag"
-;;   "youngsamos-highres-ag"
-;;   "torn-highres-ag"
-;;   "ltrnysam"
-;;   )
+(copy-gos
+  "youngsamos-ltrnysam+0-ag"
+  ; "youngsamos-highres-ag"
+  ; "torn-highres-ag"
+  "ltrnysam"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; LWHACK
@@ -3383,8 +3373,6 @@
 (copy-textures 3341 3343 3342 3344 3471)
 
 (copy-gos
-  ;; "daxter-highres-ag"
-  ;; "jak-highres-ag"
   "ctypal-baron-statue-break-ag"
   "mincan-cogs-ag"
   "ctypal-break-wall-ag"
@@ -3394,7 +3382,6 @@
   "shard-ag"
   "gear-device-gear-ag"
   "mtn-lens-ag"
-  ;; "particleman-ag"
   "mincan-vis"
   )
 
@@ -3414,9 +3401,7 @@
   "levels/temple/mountain-obs2.gc"
   "levels/temple/mountain-scenes.gc"
   "levels/temple/mountain-part.gc"
-  ;; "levels/common/enemy/metalhead_bearer/centurion.gc"
   "levels/common/enemy/hopper.gc"
-  ;; "levels/common/enemy/metalhead_brown/metalmonk.gc"
   )
 
 (copy-textures 1254 1256 1255 1253 1257 3470 1275)
@@ -3425,10 +3410,8 @@
   "plat-buried-ag"
   "plat-return-ag"
   "water-anim-mountain-ag"
-  ;; "shard-ag"
   "mtn-gate-ag"
   "mtn-lens-base-ag"
-  ;; "warp-gate-ag"
   "mtn-plat-long-ag"
   "iris-door-ag"
   "mtn-plat-elevator-ag"
@@ -3443,36 +3426,28 @@
 ;; ;; MTX
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "MTX.DGO" "mtx.gd")
+(cgo "MTX.DGO" "mtx.gd")
 
-;; (copy-textures 1719 1721 1720 1722 3506)
+(copy-textures 1719 1721 1720 1722 3506)
 
-;; (copy-gos
-;;   "daxter-highres-ag"
-;;   "jak-highres-ag"
-;;   "mtn-gear-device-ag"
-;;   "mtn-step-plat-rocks-ag"
-;;   "metalmonk-ag"
-;;   "centurion-ag"
-;;   "rhino-ag"
-;;   "mtn-plat-buried-rocks-ag"
-;;   "rhino-wall-ag"
-;;   "hopper-ag"
-;;   "water-anim-mountain-dark-eco-ag"
-;;   "mtn-aval-rocks-ag"
-;;   "mtn-dice-ag"
-;;   "plat-buried-ag"
-;;   "plat-return-ag"
-;;   "iris-door-ag"
-;;   "seal-of-mar-ag"
-;;   "mtn-dice-button-ag"
-;;   "mtn-plat-eject-ag"
-;;   "mtn-button-ag"
-;;   "gear-device-gear-ag"
-;;   "mtn-lens-ag"
-;;   "particleman-ag"
-;;   "mtnext-vis"
-;;   )
+(copy-gos
+  "mtn-gear-device-ag"
+  "mtn-step-plat-rocks-ag"
+  "rhino-ag"
+  "mtn-plat-buried-rocks-ag"
+  "rhino-wall-ag"
+  "hopper-ag"
+  "water-anim-mountain-dark-eco-ag"
+  "mtn-aval-rocks-ag"
+  "mtn-dice-ag"
+  "seal-of-mar-ag"
+  "mtn-dice-button-ag"
+  "mtn-plat-eject-ag"
+  "mtn-button-ag"
+  "mtnext-vis"
+  )
+
+(copy-strs "RHW1" "RHW2")
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; NEB
@@ -3886,28 +3861,30 @@
   "ruins-vis"
   )
 
+(copy-strs "RUB1" "RUBW1" "RUBW2" "RUBW3" "RUBW4" "RUBW5" "RUBW6" "RUDPA1" "RUPC1" "RUPC2")
+
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; SAG
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "SAG.DGO" "sag.gd")
+(cgo "SAG.DGO" "sag.gd")
 
-;; (copy-textures 881 1131 882 880)
+(copy-textures 881 1131 882 880)
 
-;; (copy-gos
-;;   "daxter-highres-ag"
-;;   "jak-highres-ag"
-;;   "torn-highres-ag"
-;;   "ruins-tower-a-ag"
-;;   "ruins-tower-c-ag"
-;;   "ruins-tower-e-ag"
-;;   "ruins-tower-b-ag"
-;;   "ruins-tower-f-ag"
-;;   "ruins-tower-d-ag"
-;;   "life-seed-ag"
-;;   "ruins-tower-rp-ag"
-;;   "sagehut-vis"
-;;   )
+(copy-gos
+  ;; "daxter-highres-ag"
+  ;; "jak-highres-ag"
+  "torn-highres-ag"
+  "ruins-tower-a-ag"
+  "ruins-tower-c-ag"
+  "ruins-tower-e-ag"
+  "ruins-tower-b-ag"
+  "ruins-tower-f-ag"
+  "ruins-tower-d-ag"
+  ;; "life-seed-ag"
+  "ruins-tower-rp-ag"
+  "sagehut-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; SEB
@@ -3959,32 +3936,27 @@
 ;; ;; SEW
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "SEW.DGO" "sew.gd")
+(cgo "SEW.DGO" "sew.gd")
 
-;; (copy-textures 1059 1060 1066 2270 3479)
+(copy-textures 1059 1060 1066 2270 3479)
 
-;; (copy-gos
-;;   "daxter-highres-ag"
-;;   "grunt-ag"
-;;   "jak-highres-ag"
-;;   "amphibian-ag"
-;;   "sew-catwalk-ag"
-;;   "sew-multi-blade-ag"
-;;   "fodder-ag"
-;;   "sew-gunturret-ag"
-;;   "mar-statue-ag"
-;;   "sew-twist-blade-ag"
-;;   "sew-tri-blade-ag"
-;;   "sew-single-blade-ag"
-;;   "mine-a-ag"
-;;   "sew-valve-ag"
-;;   "mine-b-ag"
-;;   "sew-arm-blade-ag"
-;;   "gold-key-ag"
-;;   "light-switch-ag"
-;;   "grill-ag"
-;;   "sewer-vis"
-;;   )
+(copy-gos
+  "sew-catwalk-ag"
+  "sew-multi-blade-ag"
+  "sew-gunturret-ag"
+  "mar-statue-ag"
+  "sew-twist-blade-ag"
+  "sew-tri-blade-ag"
+  "sew-single-blade-ag"
+  "mine-a-ag"
+  "sew-valve-ag"
+  "mine-b-ag"
+  "sew-arm-blade-ag"
+  "gold-key-ag"
+  "light-switch-ag"
+  "grill-ag"
+  "sewer-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; SKA
@@ -4170,19 +4142,6 @@
 (goal-src-sequence
   ""
   :deps ("$OUT/obj/los-control.o")
-  ;; "levels/common/enemy/hover/hover-formation-h.gc"
-  ;; "levels/common/enemy/hover/hover-nav-control-h.gc"
-  ;; "levels/common/enemy/hover/hover-enemy-h.gc"
-  ;; "levels/common/enemy/hover/hover-nav-network.gc"
-  ;; "levels/common/enemy/hover/hover-nav-control.gc"
-  ;; "levels/common/enemy/hover/hover-enemy.gc"
-  ;; "levels/common/enemy/hover/hover-enemy-battle.gc"
-  ;; "levels/common/enemy/hover/hover-formation.gc"
-  ;; "levels/common/enemy/hover/hover-nav-edit.gc"
-  ;; "levels/common/enemy/hover/wasp-part.gc"
-  ;; "levels/common/enemy/hover/wasp.gc"
-  ;; "levels/common/enemy/hover/crimson-guard-hover.gc"
-  ;; "levels/common/enemy/hover/flamer.gc"
   "levels/strip/strip-scenes.gc"
   "levels/strip/strip-part.gc"
   "levels/strip/strip-ocean.gc"
@@ -4195,8 +4154,6 @@
 (copy-textures 787 789 788 786 1272 2854)
 
 (copy-gos
-  ;; "grunt-ag"
-  ;; "flitter-ag"
   "flamer-ag"
   "water-anim-strip-dark-eco-ag"
   "cranecrate-ag"
@@ -4207,7 +4164,6 @@
   "lgconveyor-ag"
   "pitspikes-ag"
   "grunt-egg-b-ag"
-  ;; "warp-gate-ag"
   "grunt-egg-a-ag"
   "grunt-egg-d-ag"
   "crane-ag"
@@ -4225,84 +4181,31 @@
 ;; ;; SWB
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "SWB.DGO" "swb.gd")
+(cgo "SWB.DGO" "swb.gd")
 
-;; (goal-src-sequence
-;;   ""
-;;   :deps ("$OUT/obj/los-control.o")
-;;   "levels/common/ai/ai-task-h.gc"
-;;   "levels/common/ai/bot-h.gc"
-;;   "levels/common/ai/bot.gc"
-;;   "levels/common/ai/bot-states.gc"
-;;   "levels/undefined/hal-h.gc"
-;;   "levels/undefined/hal-task.gc"
-;;   "levels/undefined/hal.gc"
-;;   "levels/undefined/ruf-h.gc"
-;;   "levels/undefined/ruf-task.gc"
-;;   "levels/undefined/ruf.gc"
-;;   "levels/undefined/ruf-states.gc"
-;;   "levels/sewer/escort/jinx-h.gc"
-;;   "levels/sewer/escort/jinx-shot.gc"
-;;   "levels/sewer/escort/jinx-bomb.gc"
-;;   "levels/sewer/escort/jinx.gc"
-;;   "levels/sewer/escort/jinx-states.gc"
-;;   "levels/sewer/escort/mog-h.gc"
-;;   "levels/sewer/escort/mog.gc"
-;;   "levels/sewer/escort/grim-h.gc"
-;;   "levels/sewer/escort/grim.gc"
-;;   "levels/sewer/sewer-part.gc"
-;;   "levels/sewer/sewer-ocean.gc"
-;;   "levels/sewer/sewer-obs.gc"
-;;   "levels/sewer/sewer-obs2.gc"
-;;   "levels/sewer/hosehead.gc"
-;;   "levels/sewer/hosehead-fake.gc"
-;;   "levels/common/enemy/amphibian/amphibian.gc"
-;;   "levels/sewer/gator.gc"
-;;   "levels/common/enemy/fodder/fodder.gc"
-;;   "levels/sewer/hal2-course.gc"
-;;   "levels/sewer/mog2-course.gc"
-;;   "levels/sewer/jinx2-course.gc"
-;;   "levels/sewer/grim2-course.gc"
-;;   "levels/sewer/sewer-scenes.gc"
-;;   "levels/common/entities/sew-gunturret.gc"
-;;   )
+(copy-textures 1372 1373 1458)
 
-;; (copy-textures 1372 1373 1458)
-
-;; (copy-gos
-;;   "com-airlock-inner-ag"
-;;   "sew-elevator-ag"
-;;   "sewescb-vis"
-;;   )
+(copy-gos
+  "sewescb-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; SWE
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "SWE.DGO" "swe.gd")
+(cgo "SWE.DGO" "swe.gd")
 
-;; (copy-textures 1370 1387 1371 2293 3478 3415)
+(copy-textures 1370 1387 1371 2293 3478 3415)
 
-;; (copy-gos
-;;   "jinx-ag"
-;;   "daxter-highres-ag"
-;;   "jak-highres-ag"
-;;   "hosehead-ag"
-;;   "sew-wall-ag"
-;;   "sew-mar-statue-explode-ag"
-;;   "sew-multi-blade-ag"
-;;   "mar-statue-ag"
-;;   "sew-twist-blade-ag"
-;;   "heart-of-mar-ag"
-;;   "mine-a-ag"
-;;   "mine-b-ag"
-;;   "sew-arm-blade-ag"
-;;   "light-switch-ag"
-;;   "jinx-bomb-ag"
-;;   "grill-ag"
-;;   "particleman-ag"
-;;   "sewesc-vis"
-;;   )
+(copy-gos
+  "jinx-ag"
+  "hosehead-ag"
+  "sew-wall-ag"
+  "sew-mar-statue-explode-ag"
+  "heart-of-mar-ag"
+  "jinx-bomb-ag"
+  "sewesc-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; TBO
@@ -4415,51 +4318,51 @@
 ;; ;; TOB
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "TOB.DGO" "tob.gd")
+(cgo "TOB.DGO" "tob.gd")
 
-;; (copy-textures 1596 1597)
+(copy-textures 1596 1597)
 
-;; (copy-gos
-;;   "jak-pole+0-ag"
-;;   "tomb-stair-block-ag"
-;;   "tomb-baby-spider-ag"
-;;   "water-anim-tomb-dark-eco-ag"
-;;   "tomb-elevator-ag"
-;;   "tomb-plat-wall-ag"
-;;   "tomb-button-ag"
-;;   "tomb-stair-block-spikes-ag"
-;;   "tomb-boulder-door-ag"
-;;   "tomb-move-swing-pole-ag"
-;;   "tombb-vis"
-;;   )
+(copy-gos
+  ;; "jak-pole+0-ag"
+  "tomb-stair-block-ag"
+  "tomb-baby-spider-ag"
+  "water-anim-tomb-dark-eco-ag"
+  "tomb-elevator-ag"
+  "tomb-plat-wall-ag"
+  "tomb-button-ag"
+  "tomb-stair-block-spikes-ag"
+  "tomb-boulder-door-ag"
+  "tomb-move-swing-pole-ag"
+  "tombb-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; TOC
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "TOC.DGO" "toc.gd")
+(cgo "TOC.DGO" "toc.gd")
 
-;; (copy-textures 1598 1599 1832)
+(copy-textures 1598 1599 1832)
 
-;; (copy-gos
-;;   "water-anim-tomb-ag"
-;;   "tomb-baby-spider-ag"
-;;   "tomb-beetle-ag"
-;;   "tomb-door-ag"
-;;   "tomb-vibe-ag"
-;;   "tomb-simon-button-ag"
-;;   "tomb-plat-simon-ag"
-;;   "tomb-wing-door-ag"
-;;   "tomb-button-ag"
-;;   "tomb-beetle-door-ag"
-;;   "tombc-vis"
-;;   )
+(copy-gos
+  ;; "water-anim-tomb-ag"
+  ;; "tomb-baby-spider-ag"
+  "tomb-beetle-ag"
+  "tomb-door-ag"
+  "tomb-vibe-ag"
+  ;; "tomb-simon-button-ag"
+  "tomb-plat-simon-ag"
+  ;; "tomb-wing-door-ag"
+  ;; "tomb-button-ag"
+  "tomb-beetle-door-ag"
+  "tombc-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; TOD
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "TOD.DGO" "tod.gd")
+(cgo "TOD.DGO" "tod.gd")
 
 ;; (goal-src-sequence
 ;;   ""
@@ -4467,46 +4370,46 @@
 ;;   "levels/common/entities/com-elevator.gc"
 ;;   )
 
-;; (copy-textures 1626 1627 3275)
+(copy-textures 1626 1627 3275)
 
-;; (copy-gos
-;;   "youngsamos-tombd+0-ag"
-;;   "kid-tombd+0-ag"
-;;   "daxter-highres-ag"
-;;   "youngsamos-highres-ag"
-;;   "jak-highres-ag"
-;;   "crocadog-highres-ag"
-;;   "kor-highres-ag"
-;;   "kid-highres-ag"
-;;   "tomb-mar-door-ag"
-;;   "com-elevator-ag"
-;;   "tombd-vis"
-;;   )
+(copy-gos
+  "youngsamos-tombd+0-ag"
+  ;; "kid-tombd+0-ag"
+  ;; "daxter-highres-ag"
+  ;; "youngsamos-highres-ag"
+  ;; "jak-highres-ag"
+  ;; "crocadog-highres-ag"
+  ;; "kor-highres-ag"
+  ;; "kid-highres-ag"
+  ;; "tomb-mar-door-ag"
+  ;; "com-elevator-ag"
+  "tombd-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; TOE
 ;; ;;;;;;;;;;;;;;;;;;;;;
 
-;; (cgo "TOE.DGO" "toe.gd")
+(cgo "TOE.DGO" "toe.gd")
 
-;; (goal-src-sequence
-;;   ""
-;;   :deps ("$OUT/obj/los-control.o")
-;;   "levels/mars_tomb/left/chase/target-indax.gc"
-;;   "levels/mars_tomb/left/chase/tomb-boulder.gc"
-;;   )
+(goal-src-sequence
+  ""
+  :deps ("$OUT/obj/los-control.o")
+  "levels/mars_tomb/left/chase/target-indax.gc"
+  "levels/mars_tomb/left/chase/tomb-boulder.gc"
+  )
 
-;; (copy-textures 2374 2375 2376)
+(copy-textures 2374 2375 2376)
 
-;; (copy-gos
-;;   "jak-indax+0-ag"
-;;   "tomb-boulder-ag"
-;;   "tomb-baby-spider-ag"
-;;   "tomb-plat-pillar-ag"
-;;   "spider-eyes-ag"
-;;   "tomb-bounce-web-ag"
-;;   "tombe-vis"
-;;   )
+(copy-gos
+  "jak-indax+0-ag"
+  "tomb-boulder-ag"
+  ;; "tomb-baby-spider-ag"
+  "tomb-plat-pillar-ag"
+  "spider-eyes-ag"
+  "tomb-bounce-web-ag"
+  "tombe-vis"
+  )
 
 ;; ;;;;;;;;;;;;;;;;;;;;;
 ;; ;; TOMBEXT
@@ -4657,6 +4560,10 @@
 (group-list "text"
  `("$OUT/iso/0COMMON.TXT")
  )
+
+;; Custom or Modified Code
+(goal-src "pc/pckernel-h.gc" "dma-buffer")
+(goal-src "pc/pckernel.gc" "video")
 
 ;; used for the type consistency test.
 (group-list "all-code"

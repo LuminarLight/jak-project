@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 #include "common/util/FileUtil.h"
 
@@ -32,5 +33,3 @@ struct OfflineTestArtFile {
 std::vector<OfflineTestSourceFile> find_source_files(const std::string& game_name,
                                                      const std::vector<std::string>& dgos,
                                                      const std::string& single_file);
-std::vector<OfflineTestArtFile> find_art_files(const std::string& game_name,
-                                               const std::vector<std::string>& dgos);

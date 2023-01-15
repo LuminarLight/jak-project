@@ -263,17 +263,19 @@ class TypeSystem {
     m_types_allowed_to_be_redefined.push_back(type_name);
   }
 
+  std::vector<std::string> get_all_type_names();
   std::vector<std::string> search_types_by_parent_type(
       const std::string& parent_type,
-      const std::vector<std::string>& existing_matches = {});
+      const std::optional<std::vector<std::string>>& existing_matches = {});
 
   std::vector<std::string> search_types_by_minimum_method_id(
       const int minimum_method_id,
-      const std::vector<std::string>& existing_matches = {});
+      const std::optional<std::vector<std::string>>& existing_matches = {});
 
   std::vector<std::string> search_types_by_size(
-      const int search_size,
-      const std::vector<std::string>& existing_matches = {});
+      const int min_size,
+      const std::optional<int> max_size,
+      const std::optional<std::vector<std::string>>& existing_matches = {});
 
   struct TypeSearchFieldInput {
     std::string field_type_name;
@@ -282,7 +284,7 @@ class TypeSystem {
 
   std::vector<std::string> search_types_by_fields(
       const std::vector<TypeSearchFieldInput>& search_fields,
-      const std::vector<std::string>& existing_matches = {});
+      const std::optional<std::vector<std::string>>& existing_matches = {});
 
  private:
   std::string lca_base(const std::string& a, const std::string& b) const;

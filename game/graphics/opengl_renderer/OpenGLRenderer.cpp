@@ -93,6 +93,8 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<TextureUploadHandler>("tex-lcom-sky-pre", BucketCategory::TEX,
                                              BucketId::TEX_LCOM_SKY_PRE);
   init_bucket_renderer<DirectRenderer>("sky-draw", BucketCategory::OTHER, BucketId::SKY_DRAW, 1024);
+  init_bucket_renderer<SkipRenderer>("ocean-mid-far", BucketCategory::OCEAN,
+                                     BucketId::OCEAN_MID_FAR);
   init_bucket_renderer<TextureUploadHandler>("tex-l0-tfrag", BucketCategory::TEX,
                                              BucketId::TEX_L0_TFRAG);
   init_bucket_renderer<TFragment>("tfrag-l0-tfrag", BucketCategory::TFRAG, BucketId::TFRAG_L0_TFRAG,
@@ -122,11 +124,17 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<Tie3>("tie-l3-tfrag", BucketCategory::TIE, BucketId::TIE_L3_TFRAG, 3);
   init_bucket_renderer<Merc2>("merc-l3-tfrag", BucketCategory::MERC, BucketId::MERC_L3_TFRAG);
   // 50
+  init_bucket_renderer<TextureUploadHandler>("tex-l4-tfrag", BucketCategory::TEX,
+                                             BucketId::TEX_L4_TFRAG);
+  init_bucket_renderer<TFragment>("tfrag-l4-tfrag", BucketCategory::TFRAG, BucketId::TFRAG_L4_TFRAG,
+                                  std::vector{tfrag3::TFragmentTreeKind::NORMAL}, false, 3);
+  init_bucket_renderer<Tie3>("tie-l4-tfrag", BucketCategory::TIE, BucketId::TIE_L4_TFRAG, 3);
   // 60
   // 70
   init_bucket_renderer<TextureUploadHandler>("tex-l0-shrub", BucketCategory::TEX,
                                              BucketId::TEX_L0_SHRUB);
   init_bucket_renderer<Shrub>("shrub-l0-shrub", BucketCategory::SHRUB, BucketId::SHRUB_L0_SHRUB);
+  init_bucket_renderer<Merc2>("merc-l0-shrub", BucketCategory::MERC, BucketId::MERC_L0_SHRUB);
   // 80
   init_bucket_renderer<TextureUploadHandler>("tex-l1-shrub", BucketCategory::TEX,
                                              BucketId::TEX_L1_SHRUB);
@@ -139,7 +147,10 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<TextureUploadHandler>("tex-l3-shrub", BucketCategory::TEX,
                                              BucketId::TEX_L3_SHRUB);
   init_bucket_renderer<Shrub>("shrub-l3-shrub", BucketCategory::SHRUB, BucketId::SHRUB_L3_SHRUB);
+  init_bucket_renderer<TextureUploadHandler>("tex-l4-shrub", BucketCategory::TEX,
+                                             BucketId::TEX_L4_SHRUB);
   // 110
+  init_bucket_renderer<Shrub>("shrub-l4-shrub", BucketCategory::SHRUB, BucketId::SHRUB_L4_SHRUB);
   // 120
   init_bucket_renderer<TextureUploadHandler>("tex-l0-alpha", BucketCategory::TEX,
                                              BucketId::TEX_L0_ALPHA);
@@ -149,8 +160,15 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   // 130
   init_bucket_renderer<TextureUploadHandler>("tex-l1-alpha", BucketCategory::TEX,
                                              BucketId::TEX_L1_ALPHA);
+  init_bucket_renderer<TFragment>("tfrag-t-l1-alpha", BucketCategory::TFRAG,
+                                  BucketId::TFRAG_T_L1_ALPHA,
+                                  std::vector{tfrag3::TFragmentTreeKind::TRANS}, false, 1);
   // 140
+  init_bucket_renderer<Merc2>("merc-l1-alpha", BucketCategory::MERC, BucketId::MERC_L1_ALPHA);
+  init_bucket_renderer<TextureUploadHandler>("tex-l2-alpha", BucketCategory::TEX,
+                                             BucketId::TEX_L2_ALPHA);
   // 150
+  init_bucket_renderer<Merc2>("merc-l2-alpha", BucketCategory::MERC, BucketId::MERC_L2_ALPHA);
   // 160
   // 170
   // 180
@@ -173,13 +191,30 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<Merc2>("merc-l2-pris", BucketCategory::MERC, BucketId::MERC_L2_PRIS);
   init_bucket_renderer<TextureUploadHandler>("tex-l3-pris", BucketCategory::TEX,
                                              BucketId::TEX_L3_PRIS);
+  init_bucket_renderer<Merc2>("merc-l3-pris", BucketCategory::MERC, BucketId::MERC_L3_PRIS);
   // 210
+  init_bucket_renderer<TextureUploadHandler>("tex-l4-pris", BucketCategory::TEX,
+                                             BucketId::TEX_L4_PRIS);
+  init_bucket_renderer<Merc2>("merc-l4-pris", BucketCategory::MERC, BucketId::MERC_L4_PRIS);
+  init_bucket_renderer<TextureUploadHandler>("tex-l5-pris", BucketCategory::TEX,
+                                             BucketId::TEX_L5_PRIS);
   // 220
   init_bucket_renderer<TextureUploadHandler>("tex-lcom-pris", BucketCategory::TEX,
                                              BucketId::TEX_LCOM_PRIS);
   init_bucket_renderer<Merc2>("merc-lcom-pris", BucketCategory::MERC, BucketId::MERC_LCOM_PRIS);
+  init_bucket_renderer<TextureUploadHandler>("tex-l0-pris2", BucketCategory::TEX,
+                                             BucketId::TEX_L0_PRIS2);
+  init_bucket_renderer<TextureUploadHandler>("tex-l1-pris2", BucketCategory::TEX,
+                                             BucketId::TEX_L1_PRIS2);
   // 230
+  init_bucket_renderer<TextureUploadHandler>("tex-l2-pris2", BucketCategory::TEX,
+                                             BucketId::TEX_L2_PRIS2);
+
+  init_bucket_renderer<TextureUploadHandler>("tex-l3-pris2", BucketCategory::TEX,
+                                             BucketId::TEX_L3_PRIS2);
   // 240
+  init_bucket_renderer<TextureUploadHandler>("tex-l4-pris2", BucketCategory::TEX,
+                                             BucketId::TEX_L4_PRIS2);
   // 250
   init_bucket_renderer<TextureUploadHandler>("tex-l0-water", BucketCategory::TEX,
                                              BucketId::TEX_L0_WATER);
@@ -191,6 +226,9 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<TextureUploadHandler>("tex-l1-water", BucketCategory::TEX,
                                              BucketId::TEX_L1_WATER);
   init_bucket_renderer<Merc2>("merc-l1-water", BucketCategory::MERC, BucketId::MERC_L1_WATER);
+  init_bucket_renderer<TFragment>("tfrag-w-l1-alpha", BucketCategory::TFRAG,
+                                  BucketId::TFRAG_W_L1_WATER,
+                                  std::vector{tfrag3::TFragmentTreeKind::WATER}, false, 0);
 
   // 270
   init_bucket_renderer<TextureUploadHandler>("tex-l2-water", BucketCategory::TEX,
@@ -199,6 +237,9 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<TextureUploadHandler>("tex-l3-water", BucketCategory::TEX,
                                              BucketId::TEX_L3_WATER);
   // 280
+  init_bucket_renderer<TextureUploadHandler>("tex-l4-water", BucketCategory::TEX,
+                                             BucketId::TEX_L4_WATER);
+  init_bucket_renderer<Merc2>("merc-l4-water", BucketCategory::MERC, BucketId::MERC_L4_WATER);
   // 290
   // 300
   init_bucket_renderer<TextureUploadHandler>("tex-lcom-water", BucketCategory::TEX,
@@ -207,6 +248,7 @@ void OpenGLRenderer::init_bucket_renderers_jak2() {
   init_bucket_renderer<TextureUploadHandler>("tex-lcom-sky-post", BucketCategory::TEX,
                                              BucketId::TEX_LCOM_SKY_POST);
   // 310
+  init_bucket_renderer<SkipRenderer>("bucket-310", BucketCategory::OCEAN, BucketId::OCEAN_NEAR);
   init_bucket_renderer<TextureUploadHandler>("tex-all-sprite", BucketCategory::TEX,
                                              BucketId::TEX_ALL_SPRITE);
   init_bucket_renderer<Sprite3>("particles", BucketCategory::SPRITE, BucketId::PARTICLES);
