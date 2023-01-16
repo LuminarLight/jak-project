@@ -1494,6 +1494,21 @@
         :lev1 'foyer
         :disp1 'display
         )
+        (new 'static 'continue-point
+        :name "yosemite-warp"
+        :level 'foyer
+        :flags (continue-flags warp)
+        :trans (new 'static 'vector :x (meters 1196.75) :y (meters 47.99) :z (meters -3626.60) :w 1.0)
+        :quat (new 'static 'quaternion :x -0.1204 :y -0.1174 :z 0.6881 :w 0.7057)
+        :camera-trans (new 'static 'vector :x (meters 1183.75) :y (meters 55.39) :z (meters -3630.47) :w 1.0)
+        :camera-rot (new 'static 'array float 9 0.0040 0.0000 -0.9999 0.1934 0.9811 0.0007 0.9810 -0.1934 0.0039)
+        :load-commands '()
+        :vis-nick #f
+        :lev0 'foyer
+        :disp0 'display
+        :lev1 'yosemite
+        :disp1 'display
+        )
       )
     :tasks '()
     :priority 100
