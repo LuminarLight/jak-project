@@ -140,7 +140,7 @@
               (go-virtual active)
               )
           (if (and *cheat-mode* (cpad-pressed? 0 l3))
-              (set! (-> self max-slot) (- (-> *warp-info* length) 1))
+              (set! (-> self max-slot) (- (-> *warp-info* length) 1)) ;; This gets overwritten due to the changes we made elsewhere. Not a huge problem though.
               )
           (let ((gp-0
                   (new 'stack 'font-context *font-default-matrix* 32 160 0.0 (font-color default) (font-flags shadow kerning))
@@ -286,6 +286,9 @@
                               )
                             )
           )
+    (if (= *cheat-mode* 'debug)
+          (set! (-> self max-slot) (- (-> *warp-info* length) 1)) ;; We still want to have a way to show all options, so we just let it happen if cheat mode is set to debug
+        )
     (format 0 "SELF MAX-SLOT: ~D~%" (-> self max-slot))
     
     (local-vars (sv-112 int) (sv-128 int) (sv-144 int))    
