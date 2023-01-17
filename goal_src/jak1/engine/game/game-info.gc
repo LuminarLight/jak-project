@@ -225,7 +225,7 @@
                            "demo-start"
                            )
                           (*debug-segment*
-                            "snow-by-ice-lake"
+                            "training-start"
                             )
                           (else
                             "title-start"
