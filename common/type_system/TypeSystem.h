@@ -143,7 +143,7 @@ class TypeSystem {
   bool fully_defined_type_exists(const TypeSpec& type) const;
   bool partially_defined_type_exists(const std::string& name) const;
   TypeSpec make_typespec(const std::string& name) const;
-  TypeSpec make_array_typespec(const TypeSpec& element_type) const;
+  TypeSpec make_array_typespec(const std::string& array_type, const TypeSpec& element_type) const;
   TypeSpec make_function_typespec(const std::vector<std::string>& arg_types,
                                   const std::string& return_type) const;
 
@@ -160,6 +160,10 @@ class TypeSystem {
 
   int get_load_size_allow_partial_def(const TypeSpec& ts) const;
 
+  MethodInfo override_method(Type* type,
+                             const std::string& type_name,
+                             const int method_id,
+                             const std::optional<std::string>& docstring);
   MethodInfo declare_method(const std::string& type_name,
                             const std::string& method_name,
                             const std::optional<std::string>& docstring,

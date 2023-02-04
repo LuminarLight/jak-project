@@ -204,7 +204,7 @@ goos::Object decompile_at_label(const TypeSpec& type,
     if (type.has_single_arg()) {
       content_type_spec = type.get_single_arg();
     }
-    return decompile_boxed_array(label, labels, words, ts, file, content_type_spec, version);
+    return decompile_boxed_array(type, label, labels, words, ts, file, content_type_spec, version);
   }
 
   if (ts.tc(TypeSpec("structure"), type)) {
@@ -383,7 +383,18 @@ goos::Object decomp_ref_to_integer_array_guess_size(
   // the input is the location of the data field.
   // we expect that to be a label:
   ASSERT((field_location % 4) == 0);
-  auto pointer_to_data = words.at(field_location / 4);
+  auto& pointer_to_data = words.at(field_location / 4);
+
+  // pointer-arrays can also be initialized as #f
+  if (pointer_to_data.kind() == LinkedWord::SYM_PTR) {
+    ASSERT_MSG(
+        pointer_to_data.symbol_name() == "#f",
+        fmt::format(
+            "attempted to decompile a pointer array of '{}', but encounted a non `#f` symbol",
+            array_elt_type.base_type()));
+    return pretty_print::to_symbol("#f");
+  }
+
   ASSERT(pointer_to_data.kind() == LinkedWord::PTR);
 
   // the data shouldn't have any labels in the middle of it, so we can find the end of the array
@@ -467,7 +478,7 @@ goos::Object decomp_ref_to_inline_array_guess_size(
   // the input is the location of the data field.
   // we expect that to be a label:
   ASSERT((field_location % 4) == 0);
-  auto pointer_to_data = words.at(field_location / 4);
+  auto& pointer_to_data = words.at(field_location / 4);
 
   // inline-arrays can also be initialized as #f
   if (pointer_to_data.kind() == LinkedWord::SYM_PTR) {
@@ -736,6 +747,11 @@ const std::unordered_map<
           {"nav-network-info",
            {{"adjacency", ArrayFieldDecompMeta(TypeSpec("nav-network-adjacency"), 16)}}},
           {"sig-path", {{"samples", ArrayFieldDecompMeta(TypeSpec("sig-path-sample"), 64)}}},
+          {"rigid-body-vehicle-constants",
+           {{"color-option-array", ArrayFieldDecompMeta(TypeSpec("vector"), 16)},
+            {"grab-rail-array", ArrayFieldDecompMeta(TypeSpec("vehicle-grab-rail-info"), 48)}}},
+          {"city-ambush-info", {{"array", ArrayFieldDecompMeta(TypeSpec("city-ambush-spot"), 32)}}},
+          {"bombbot-path", {{"node", ArrayFieldDecompMeta(TypeSpec("bombbot-node"), 32)}}},
           {"fort-robotank-segment",
            {{"event-tbl", ArrayFieldDecompMeta(TypeSpec("fort-robotank-segment-event"), 32)}}},
           {"race-info",
@@ -862,7 +878,22 @@ const std::unordered_map<
           {"ai-task-pool",
            {{"tasks", ArrayFieldDecompMeta(TypeSpec("uint32"),
                                            4,
-                                           ArrayFieldDecompMeta::Kind::REF_TO_INTEGER_ARR)}}}}}};
+                                           ArrayFieldDecompMeta::Kind::REF_TO_INTEGER_ARR)}}},
+          {"bot-course", {{"spots", ArrayFieldDecompMeta(TypeSpec("bot-spot"), 32)}}},
+          {"hal3-course", {{"spots", ArrayFieldDecompMeta(TypeSpec("bot-spot"), 32)}}},
+          {"sig5-course",
+           {{"spots", ArrayFieldDecompMeta(TypeSpec("bot-spot"), 32)},
+            {"speeches", ArrayFieldDecompMeta(TypeSpec("bot-speech-info"), 16)},
+            {"dirs", ArrayFieldDecompMeta(TypeSpec("vector"), 16)},
+            {"speech-tunings", ArrayFieldDecompMeta(TypeSpec("bot-speech-tuning"), 16)}}},
+          {"under-block-puzzle",
+           {{"cells", ArrayFieldDecompMeta(TypeSpec("int32"),
+                                           4,
+                                           ArrayFieldDecompMeta::Kind::REF_TO_INTEGER_ARR)},
+            {"pulse-ops",
+             ArrayFieldDecompMeta(TypeSpec("int8"),
+                                  1,
+                                  ArrayFieldDecompMeta::Kind::REF_TO_INTEGER_ARR)}}}}}};
 
 goos::Object decompile_structure(const TypeSpec& type,
                                  const DecompilerLabel& label,
@@ -1474,7 +1505,8 @@ goos::Object decompile_value(const TypeSpec& type,
   }
 }
 
-goos::Object decompile_boxed_array(const DecompilerLabel& label,
+goos::Object decompile_boxed_array(const TypeSpec& type,
+                                   const DecompilerLabel& label,
                                    const std::vector<DecompilerLabel>& labels,
                                    const std::vector<std::vector<LinkedWord>>& words,
                                    const TypeSystem& ts,
@@ -1503,8 +1535,15 @@ goos::Object decompile_boxed_array(const DecompilerLabel& label,
     throw std::runtime_error("Invalid alignment in decompile_boxed_array");
   }
 
+  std::string array_type = "boxed-array";
+
   if (content_type_override) {
     content_type = *content_type_override;
+  }
+
+  // Handle children of `array`
+  if (type.base_type() != "array") {
+    array_type = type.print();
   }
 
   // now get the size
@@ -1521,12 +1560,13 @@ goos::Object decompile_boxed_array(const DecompilerLabel& label,
   int array_allocated_length = size_word_2.data;
 
   auto content_type_info = ts.lookup_type(content_type);
-  auto params_obj = array_length == array_allocated_length
-                        ? pretty_print::to_symbol(fmt::format("new 'static 'boxed-array :type {}",
-                                                              content_type.print()))
-                        : pretty_print::to_symbol(fmt::format(
-                              "new 'static 'boxed-array :type {} :length {} :allocated-length {}",
-                              content_type.print(), array_length, array_allocated_length));
+  auto params_obj =
+      array_length == array_allocated_length
+          ? pretty_print::to_symbol(
+                fmt::format("new 'static '{} :type {}", array_type, content_type.print()))
+          : pretty_print::to_symbol(
+                fmt::format("new 'static '{} :type {} :length {} :allocated-length {}", array_type,
+                            content_type.print(), array_length, array_allocated_length));
   if (content_type_info->is_reference() || content_type == TypeSpec("object")) {
     // easy, stride of 4.
     std::vector<goos::Object> result = {params_obj};

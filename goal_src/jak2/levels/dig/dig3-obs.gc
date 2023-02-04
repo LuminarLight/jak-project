@@ -239,7 +239,7 @@
   )
 
 (deftype dig-spikey-step (process-drawable)
-  ((smush         smush-control :inline :offset-assert 208)
+  ((smush         smush-control :inline :offset-assert 200)
    (init-quat     quaternion    :inline :offset-assert 240)
    (shudder-angle float                 :offset-assert 256)
    (rot-angle     float                 :offset-assert 260)
@@ -276,26 +276,16 @@
           (suspend)
           )
         )
-      ((method-of-type smush-control activate!)
-       (the-as smush-control (&-> self stack 72))
-       -1.0
-       60
-       225
-       1.0
-       1.0
-       (-> self clock)
-       )
+      (activate! (-> self smush) -1.0 60 225 1.0 1.0 (-> self clock))
       (sound-play "spikey-shake" :position (-> self root trans))
       (let ((gp-3 (-> self clock frame-counter)))
         (until (>= (- (-> self clock frame-counter) gp-3) (seconds 0.75))
-          (set! (-> self shudder-angle)
-                (* 364.0889 ((method-of-type smush-control update!) (the-as smush-control (&-> self stack 72))))
-                )
+          (set! (-> self shudder-angle) (* 364.0889 (update! (-> self smush))))
           (suspend)
           )
         )
       (set! (-> self shudder-angle) 0.0)
-      ((method-of-type smush-control set-zero!) (the-as smush-control (&-> self stack 72)))
+      (set-zero! (-> self smush))
       (let ((gp-4 (-> self clock frame-counter)))
         (until (>= (- (-> self clock frame-counter) gp-4) (seconds 0.25))
           (suspend)
@@ -495,7 +485,7 @@ This commonly includes things such as:
   (-> arg0 status)
   )
 
-(defmethod init-collision! dig-spikey-sphere ((obj dig-spikey-sphere))
+(defmethod init-proj-collision! dig-spikey-sphere ((obj dig-spikey-sphere))
   "Init the [[projectile]]'s [[collide-shape]]"
   (let ((s5-0 (new 'process 'collide-shape-moving obj (collide-list-enum hit-by-player))))
     (set! (-> s5-0 dynam) (copy *standard-dynamics* 'process))
@@ -534,8 +524,7 @@ This commonly includes things such as:
 
 ;; WARN: Return type mismatch time-frame vs sound-id.
 (defmethod play-impact-sound! dig-spikey-sphere ((obj dig-spikey-sphere))
-  "Plays impact sound
-:virtual"
+  "Plays impact sound"
   (let* ((a0-1 (-> obj root-override))
          (s5-0 (-> a0-1 status))
          )
@@ -632,8 +621,7 @@ This commonly includes things such as:
   )
 
 (defmethod init-proj-settings! dig-spikey-sphere ((obj dig-spikey-sphere))
-  "Init relevant settings for the [[projectile]] such as gravity, speed, timeout, etc
-:virtual"
+  "Init relevant settings for the [[projectile]] such as gravity, speed, timeout, etc"
   (with-pp
     (set! (-> obj attack-mode) 'eco-dark)
     (initialize-skeleton
@@ -1350,15 +1338,15 @@ This commonly includes things such as:
 
 
 (define *dig-tipping-rock-constants* (new 'static 'rigid-body-platform-constants
-                                       :mass 4.0
-                                       :inv-mass 0.25
-                                       :cm-joint (new 'static 'vector :z -24576.0 :w 1.0)
-                                       :linear-damping 0.9
-                                       :angular-damping 0.48
-                                       :friction-factor 0.1
-                                       :inertial-tensor-x (meters 4)
-                                       :inertial-tensor-y (meters 3)
-                                       :inertial-tensor-z (meters 21)
+                                       :info (new 'static 'rigid-body-info
+                                         :mass 4.0
+                                         :inv-mass 0.25
+                                         :linear-damping 0.9
+                                         :angular-damping 0.48
+                                         :friction-factor 0.1
+                                         :cm-offset-joint (new 'static 'vector :z -24576.0 :w 1.0)
+                                         :inertial-tensor-box (new 'static 'array meters 3 (meters 4) (meters 3) (meters 21))
+                                         )
                                        :max-time-step 0.02
                                        :gravity (meters 80)
                                        :idle-distance (meters 50)
@@ -1623,16 +1611,16 @@ This commonly includes things such as:
               )
 
 (define *dig-stomp-block-constants* (new 'static 'rigid-body-object-constants
-                                      :mass 1.0
-                                      :inv-mass 1.0
-                                      :cm-joint (new 'static 'vector :w 1.0)
-                                      :linear-damping 0.99
-                                      :angular-damping 0.9
-                                      :bounce-factor 0.5
-                                      :friction-factor 0.1
-                                      :inertial-tensor-x (meters 1)
-                                      :inertial-tensor-y (meters 3)
-                                      :inertial-tensor-z (meters 1)
+                                      :info (new 'static 'rigid-body-info
+                                        :mass 1.0
+                                        :inv-mass 1.0
+                                        :linear-damping 0.99
+                                        :angular-damping 0.9
+                                        :bounce-factor 0.5
+                                        :friction-factor 0.1
+                                        :cm-offset-joint (new 'static 'vector :w 1.0)
+                                        :inertial-tensor-box (new 'static 'array meters 3 (meters 1) (meters 3) (meters 1))
+                                        )
                                       :max-time-step 0.02
                                       :gravity (meters 80)
                                       :idle-distance (meters 200)
@@ -1716,11 +1704,11 @@ This commonly includes things such as:
       (set! (-> s5-0 x) (rand-vu-float-range -40960.0 40960.0))
       (set! (-> s5-0 y) (rand-vu-float-range -40960.0 0.0))
       (set! (-> s5-0 z) (rand-vu-float-range -40960.0 40960.0))
-      (vector-float*! (-> self rbody state lin-momentum) s5-0 (-> self info mass))
+      (vector-float*! (-> self rbody state lin-momentum) s5-0 (-> self info info mass))
       (set! (-> gp-0 x) (rand-vu-float-range -10000.0 10000.0))
       (set! (-> gp-0 y) (rand-vu-float-range -10000.0 10000.0))
       (set! (-> gp-0 z) (rand-vu-float-range -10000.0 10000.0))
-      (vector-float*! (-> self rbody state ang-momentum) gp-0 (-> self info mass))
+      (vector-float*! (-> self rbody state ang-momentum) gp-0 (-> self info info mass))
       )
     (none)
     )
