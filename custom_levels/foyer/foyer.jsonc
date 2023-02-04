@@ -8,6 +8,10 @@
   "double_sided_collide": false,
   "base_id": 1000,
 
+  "ambients" : [
+  
+  ],
+  
   "actors" : [
     {
       "trans": [1095.7989, 51.6197, -3791.5104],

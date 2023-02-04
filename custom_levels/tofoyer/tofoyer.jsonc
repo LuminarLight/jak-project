@@ -8,6 +8,10 @@
   "double_sided_collide": false,
   "base_id": 2000,
 
+  "ambients" : [
+  
+  ],
+
   "actors" : [
     
   ]
