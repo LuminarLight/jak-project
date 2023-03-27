@@ -310,14 +310,50 @@ u32 GetISOFileLength(FileRecord* f) {
  * s32's). Returns pointer to name in the VAGDIR file data.
  */
 VagDirEntry* FindVAGFile(const char* name) {
-  VagDirEntry* entry = gVagDir.vag;
+  u32 original_id = 0;
+
+  VagDirEntry* original_entry = gVagDir.vag;
   for (u32 idx = 0; idx < gVagDir.count; idx++) {
     // check if matching name
-    if (memcmp(entry->name, name, 8) == 0) {
-      return entry;
+    if (memcmp(original_entry->name, name, 8) == 0) {
+      original_id = idx;
+      break;
     }
-    entry++;
+    original_entry++;
   }
+
+  u32 lengthiness = 0;
+  if (original_id == 0) {
+    lengthiness = gVagDir.vag[original_id].offset;
+  } else {
+    lengthiness = gVagDir.vag[original_id].offset - gVagDir.vag[original_id - 1].offset;
+  }
+
+  u32 randlengthiness = 0;
+  VagDirEntry* ramdom_entry = gVagDir.vag;
+  u32 rand_id = rand() % gVagDir.count;
+  u32 attempts = 0;
+  for (int idx = 0; idx < gVagDir.count; idx++) {
+    if (idx == rand_id) {
+      if (rand_id != 0) {
+        randlengthiness = gVagDir.vag[rand_id].offset - gVagDir.vag[rand_id - 1].offset;
+      } else {
+        randlengthiness = gVagDir.vag[rand_id].offset;
+      }
+      printf("attempts: %d | randlength: %d , id: %d | original length: %d, id: %d\n", attempts, randlengthiness, rand_id, lengthiness, original_id);
+      if (attempts < 100 && lengthiness > 0 &&
+          (randlengthiness > lengthiness * 3 || randlengthiness < lengthiness / 5)) {
+        idx = -1;
+        rand_id = rand() % gVagDir.count;
+        attempts++;
+        ramdom_entry = gVagDir.vag;
+        continue;
+      }
+      return ramdom_entry;
+    }
+    ramdom_entry++;
+  }
+
   return nullptr;
 }
 
