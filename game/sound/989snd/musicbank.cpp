@@ -19,7 +19,7 @@ MusicBank::MusicBank(locator& loc, u32 id, BankTag* tag)
   auto progdata = (ProgData*)((uintptr_t)data + data->FirstProg);
   for (int i = 0; i < data->NumProgs; i++) {
     Prog prog;
-    prog.d = progdata[i];
+    prog.d = progdata[data->NumProgs - i - 1];
     m_programs.emplace_back(std::move(prog));
   }
 
