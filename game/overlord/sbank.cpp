@@ -109,11 +109,28 @@ s32 LookupSoundIndex(const char* name, SoundBank** bank_out) {
     if (!bank->bank_handle) {
       continue;
     }
-
-    for (int i = 0; i < (int)bank->sound_count; i++) {
-      if (memcmp(bank->sound[i].name, name, 16) == 0) {
-        *bank_out = bank;
-        return i;
+    if ((strncmp(bank->name, "common", 16) || strncmp(bank->name, "commonj", 16)) &&
+        rand() % 10 != 0) {
+      for (int i = 0; i < (int)bank->sound_count; i++) {
+        if (memcmp(bank->sound[i].name, name, 16) == 0) {
+          *bank_out = bank;
+          return i;
+        }
+      }
+    } else if (rand() % 5 != 0) {
+      for (int i = 0; i < (int)bank->sound_count; i++) {
+        if (memcmp(bank->sound[i].name, name, 16) == 0) {
+          *bank_out = bank;
+          return i;
+        }
+      }
+    } else {
+      u32 rand_id = rand() % bank->sound_count;
+      for (int i = 0; i < (int)bank->sound_count; i++) {
+        if (i == rand_id) {
+          *bank_out = bank;
+          return i;
+        }
       }
     }
   }
