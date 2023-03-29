@@ -340,7 +340,7 @@ VagDirEntry* FindVAGFile(const char* name) {
       } else {
         randlengthiness = gVagDir.vag[rand_id].offset;
       }
-      printf("attempts: %d | randlength: %d , id: %d | original length: %d, id: %d\n", attempts, randlengthiness, rand_id, lengthiness, original_id);
+      //printf("attempts: %d | randlength: %d , id: %d | original length: %d, id: %d\n", attempts, randlengthiness, rand_id, lengthiness, original_id);
       if (attempts < 100 && lengthiness > 0 &&
           (randlengthiness > lengthiness * 3 || randlengthiness < lengthiness / 5)) {
         idx = -1;
