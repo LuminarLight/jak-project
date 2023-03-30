@@ -153,27 +153,29 @@ ExtractedVertices gltf_vertices(const tinygltf::Model& model,
   }
 
   if (get_colors) {
-    const auto& color_attrib = attributes.find("COLOR_0");
-    if (color_attrib == attributes.end()) {
-      lg::error("Mesh {} didn't have any colors, using white", debug_name);
-      for (size_t i = 0; i < result.size(); i++) {
-        vtx_colors.emplace_back(0x80, 0x80, 0x80, 0xff);
-      }
-    } else {
-      const auto attrib_accessor = model.accessors[color_attrib->second];
-      const auto& buffer_view = model.bufferViews[attrib_accessor.bufferView];
-      const auto& buffer = model.buffers[buffer_view.buffer];
-      const auto data_ptr =
-          buffer.data.data() + buffer_view.byteOffset + attrib_accessor.byteOffset;
-      const auto byte_stride = attrib_accessor.ByteStride(buffer_view);
-      const auto count = attrib_accessor.count;
+    for (size_t i = 0; i < 8; i++) {
+      const auto& color_attrib = attributes.find("COLOR_" + std::to_string(i % 2));
+      if (color_attrib == attributes.end()) {
+        lg::error("Mesh {} didn't have any colors, using white", debug_name);
+        for (size_t i = 0; i < result.size(); i++) {
+          vtx_colors.emplace_back(0x80, 0x80, 0x80, 0xff);
+        }
+      } else {
+        const auto attrib_accessor = model.accessors[color_attrib->second];
+        const auto& buffer_view = model.bufferViews[attrib_accessor.bufferView];
+        const auto& buffer = model.buffers[buffer_view.buffer];
+        const auto data_ptr =
+            buffer.data.data() + buffer_view.byteOffset + attrib_accessor.byteOffset;
+        const auto byte_stride = attrib_accessor.ByteStride(buffer_view);
+        const auto count = attrib_accessor.count;
 
-      ASSERT_MSG(attrib_accessor.type == TINYGLTF_TYPE_VEC4, "COLOR_0 wasn't vec4");
-      ASSERT_MSG(
-          attrib_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT,
-          fmt::format("COLOR_0 wasn't float, got {} instead", attrib_accessor.componentType));
-      auto colors = extract_color_from_vec4_u16(data_ptr, count, byte_stride);
-      vtx_colors.insert(vtx_colors.end(), colors.begin(), colors.end());
+        ASSERT_MSG(attrib_accessor.type == TINYGLTF_TYPE_VEC4, "COLOR_0 wasn't vec4");
+        ASSERT_MSG(
+            attrib_accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT,
+            fmt::format("COLOR_0 wasn't float, got {} instead", attrib_accessor.componentType));
+        auto colors = extract_color_from_vec4_u16(data_ptr, count, byte_stride);
+        vtx_colors.insert(vtx_colors.end(), colors.begin(), colors.end());
+      }
     }
 
     // ASSERT_MSG(color_attrib != attributes.end(), "Did not find color attribute.");
@@ -537,9 +539,11 @@ void extract(const Input& in,
             gltf_vertices(model, prim.attributes, n.w_T_node, in.get_colors, false, mesh.name);
         out.vertices.insert(out.vertices.end(), verts.vtx.begin(), verts.vtx.end());
         if (in.get_colors) {
-          all_vtx_colors.insert(all_vtx_colors.end(), verts.vtx_colors.begin(),
-                                verts.vtx_colors.end());
-          ASSERT(all_vtx_colors.size() == out.vertices.size());
+          for (size_t i = 0; i < 8; i++) {
+            all_vtx_colors.insert(all_vtx_colors.end(), verts.vtx_colors[i].begin(),
+                                  verts.vtx_colors[i].end());
+          }
+          // ASSERT(all_vtx_colors.size() == out.vertices.size());
         }
 
         // TODO: just putting it all in one material
@@ -598,7 +602,8 @@ void extract(const Input& in,
 
   if (in.get_colors) {
     Timer quantize_timer;
-    auto quantized = quantize_colors_octree(all_vtx_colors, 1024);
+    auto quantized =
+        quantize_colors_octree(all_vtx_colors, 1024);  // Something needs to be done here....
     for (size_t i = 0; i < out.vertices.size(); i++) {
       out.vertices[i].color_index = quantized.vtx_to_color[i];
     }
