@@ -311,16 +311,21 @@ u32 GetISOFileLength(FileRecord* f) {
  */
 VagDirEntry* FindVAGFile(const char* name) {
   u32 original_id = 0;
+  bool found = false;
 
   VagDirEntry* original_entry = gVagDir.vag;
   for (u32 idx = 0; idx < gVagDir.count; idx++) {
     // check if matching name
     if (memcmp(original_entry->name, name, 8) == 0) {
       original_id = idx;
+      found = true;
       break;
     }
     original_entry++;
   }
+
+  if (!found)
+    return nullptr;
 
   u32 lengthiness = 0;
   if (original_id == 0) {
@@ -340,9 +345,27 @@ VagDirEntry* FindVAGFile(const char* name) {
       } else {
         randlengthiness = gVagDir.vag[rand_id].offset;
       }
-      //printf("attempts: %d | randlength: %d , id: %d | original length: %d, id: %d\n", attempts, randlengthiness, rand_id, lengthiness, original_id);
+      // printf("attempts: %d | randlength: %d , id: %d | original length: %d, id: %d\n", attempts,
+      // randlengthiness, rand_id, lengthiness, original_id);
+      float max_threshold;
+      float min_threshold;
+      if (lengthiness < 151) {
+        // printf("THRESHOLD ONE\n");
+        max_threshold = 2.0;
+        min_threshold = 0.15;
+      } else if (lengthiness > 150 && lengthiness < 301) {
+        // printf("THRESHOLD TWO\n");
+        max_threshold = 1.75;
+        min_threshold = 0.3;
+      } else {
+        // printf("THRESHOLD THREE\n");
+        max_threshold = 1.5;
+        min_threshold = 0.5;
+      }
+
       if (attempts < 100 && lengthiness > 0 &&
-          (randlengthiness > lengthiness * 3 || randlengthiness < lengthiness / 5)) {
+          (randlengthiness > lengthiness * max_threshold ||
+           randlengthiness < lengthiness * min_threshold)) {
         idx = -1;
         rand_id = rand() % gVagDir.count;
         attempts++;
