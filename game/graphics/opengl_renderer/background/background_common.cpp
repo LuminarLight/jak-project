@@ -412,7 +412,7 @@ void interp_time_of_day_fast(const math::Vector<s32, 4> itimes[4],
       color0 = _mm_add_epi16(color0, color4);
 
       // divide, because we multiplied our weights by 2^7.
-      color0 = _mm_srli_epi16(color0, 6);
+      color0 = _mm_srli_epi16(color0, 4);
 
       // saturate
       color0 = _mm_min_epu16(sat, color0);
