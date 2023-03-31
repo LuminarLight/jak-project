@@ -273,7 +273,7 @@ void Generic2::do_draws_for_alpha(SharedRenderState* render_state,
       //  glBindTexture(GL_TEXTURE_2D, render_state->texture_pool->get_placeholder_texture());
       // }
       glDrawElements(GL_TRIANGLE_STRIP, bucket.idx_count, GL_UNSIGNED_INT,
-                     (void*)(sizeof(u32) * bucket.idx_idx));
+                     (void*)(sizeof(u32) * bucket.idx_idx * 2));
       prof.add_draw_call();
       prof.add_tri(bucket.tri_count);
     }
@@ -289,7 +289,7 @@ void Generic2::do_hud_draws(SharedRenderState* render_state, ScopedProfilerNode&
       setup_opengl_tex(0, first.tbp, first.mode.get_filt_enable(), first.mode.get_clamp_s_enable(),
                        first.mode.get_clamp_t_enable(), render_state);
       glDrawElements(GL_TRIANGLE_STRIP, bucket.idx_count, GL_UNSIGNED_INT,
-                     (void*)(sizeof(u32) * bucket.idx_idx));
+                     (void*)(sizeof(u32) * bucket.idx_idx * 2));
       prof.add_draw_call();
       prof.add_tri(bucket.tri_count);
     }
