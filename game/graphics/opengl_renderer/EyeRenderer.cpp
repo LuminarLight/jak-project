@@ -519,7 +519,7 @@ void EyeRenderer::run_gpu(const std::vector<SingleEyeDraws>& draws,
       // set Z
       // set texture
       glDisable(GL_BLEND);
-      glBindTexture(GL_TEXTURE_2D, draw.iris_gl_tex);
+      glBindTexture(GL_TEXTURE_2D, draw.lid_gl_tex);
       glDrawArrays(GL_TRIANGLE_STRIP, buffer_idx / 4, 4);
     }
     buffer_idx += 4 * 4;
@@ -528,14 +528,14 @@ void EyeRenderer::run_gpu(const std::vector<SingleEyeDraws>& draws,
       glEnable(GL_BLEND);
       glBlendEquation(GL_FUNC_ADD);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      glBindTexture(GL_TEXTURE_2D, draw.pupil_gl_tex);
+      glBindTexture(GL_TEXTURE_2D, draw.iris_gl_tex);
       glDrawArrays(GL_TRIANGLE_STRIP, buffer_idx / 4, 4);
     }
     buffer_idx += 4 * 4;
 
     if (draw.lid_tex) {
       glDisable(GL_BLEND);
-      glBindTexture(GL_TEXTURE_2D, draw.lid_gl_tex);
+      glBindTexture(GL_TEXTURE_2D, draw.pupil_gl_tex);
       glDrawArrays(GL_TRIANGLE_STRIP, buffer_idx / 4, 4);
     }
     buffer_idx += 4 * 4;
