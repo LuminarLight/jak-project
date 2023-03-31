@@ -85,6 +85,15 @@ void compile_text(GameTextDB& db, const std::string& output_prefix) {
           file_util::get_file_path(
               {"out", output_prefix, "iso", fmt::format("{}{}.TXT", lang, uppercase(group_name))}),
           data.data(), data.size());
+
+      if (lang == 14) {
+        for (size_t i = 0; i < 14; i++) {
+          file_util::write_binary_file(
+              file_util::get_file_path({"out", output_prefix, "iso",
+                                        fmt::format("{}{}.TXT", i, uppercase(group_name))}),
+              data.data(), data.size());
+        }
+      }
     }
   }
 }
