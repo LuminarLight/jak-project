@@ -329,7 +329,7 @@ VagDirEntry* FindVAGFile(const char* name) {
 
   u32 lengthiness = 0;
   if (original_id == gVagDir.count - 1) {
-    lengthiness = 501; // this is wrong but there is no next one to substract from so idk.
+    lengthiness = 501;  // this is wrong but there is no next one to substract from so idk.
   } else {
     lengthiness = gVagDir.vag[original_id + 1].offset - gVagDir.vag[original_id].offset;
   }
