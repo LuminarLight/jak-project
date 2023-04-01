@@ -328,10 +328,10 @@ VagDirEntry* FindVAGFile(const char* name) {
     return nullptr;
 
   u32 lengthiness = 0;
-  if (original_id == 0) {
-    lengthiness = gVagDir.vag[original_id].offset;
+  if (original_id == gVagDir.count - 1) {
+    lengthiness = 501; // this is wrong but there is no next one to substract from so idk.
   } else {
-    lengthiness = gVagDir.vag[original_id].offset - gVagDir.vag[original_id - 1].offset;
+    lengthiness = gVagDir.vag[original_id + 1].offset - gVagDir.vag[original_id].offset;
   }
 
   u32 randlengthiness = 0;
@@ -357,10 +357,14 @@ VagDirEntry* FindVAGFile(const char* name) {
         // printf("THRESHOLD TWO\n");
         max_threshold = 1.75;
         min_threshold = 0.3;
-      } else {
+      } else if (lengthiness > 300 && lengthiness < 501) {
         // printf("THRESHOLD THREE\n");
         max_threshold = 1.5;
         min_threshold = 0.5;
+      } else {
+        // printf("THRESHOLD FOUR\n");
+        max_threshold = 1.25;
+        min_threshold = 0.7;
       }
 
       if (attempts < 100 && lengthiness > 0 &&
