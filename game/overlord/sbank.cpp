@@ -110,14 +110,14 @@ s32 LookupSoundIndex(const char* name, SoundBank** bank_out) {
       continue;
     }
     if ((strncmp(bank->name, "common", 16) || strncmp(bank->name, "commonj", 16)) &&
-        rand() % 10 != 0) {
+        rand() % 20 != 0) {
       for (int i = 0; i < (int)bank->sound_count; i++) {
         if (memcmp(bank->sound[i].name, name, 16) == 0) {
           *bank_out = bank;
           return i;
         }
       }
-    } else if (rand() % 5 != 0) {
+    } else if (rand() % 10 != 0) { // This runs even if SBK is common but it did not get randomized. I don't care much.
       for (int i = 0; i < (int)bank->sound_count; i++) {
         if (memcmp(bank->sound[i].name, name, 16) == 0) {
           *bank_out = bank;
