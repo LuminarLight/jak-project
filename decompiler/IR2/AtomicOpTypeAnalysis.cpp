@@ -393,7 +393,7 @@ TP_Type SimpleExpression::get_type_int2(const TypeState& input,
         int size = 64 - m_args[1].get_int();
         int start_bit = end_bit - size;
         if (start_bit < 0) {
-          throw std::runtime_error("Bad bitfield start bit");
+          throw std::runtime_error("get_type_int2: Bad bitfield start bit");
         }
 
         auto type = dts.ts.lookup_type(arg0_type.get_bitfield_type());
@@ -745,7 +745,7 @@ TP_Type SimpleExpression::get_type_int2(const TypeState& input,
 
   // allow shifting stuff for setting bitfields
   if (m_kind == Kind::LEFT_SHIFT) {
-    return TP_Type::make_from_ts("int");
+    return TP_Type::make_from_ts(TypeSpec("int"));
   }
 
   throw std::runtime_error(fmt::format("Cannot get_type_int2: {}, args {} and {}",

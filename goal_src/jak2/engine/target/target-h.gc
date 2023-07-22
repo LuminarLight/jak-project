@@ -120,7 +120,6 @@
 (define-extern target-darkjak-get-off (state target))
 (define-extern set-darkjak-texture-morph! (function float none))
 (define-extern process-drawable-random-point! (function process-drawable vector vector))
-(define-extern process-drawable-shock-wall-effect (function process-drawable lightning-spec (function lightning-tracker none) sparticle-launcher int int float none))
 (define-extern target-grab (state symbol target))
 (define-extern target-darkjak-giant (state target))
 (define-extern target-falling-anim-trans (function none :behavior target))
@@ -179,9 +178,9 @@
 ;; DECOMP BEGINS
 
 (deftype target (process-focusable)
-  ((self-override           target                                     :offset         32)
+  ((self                    target                                     :override)
+   (fact                    fact-info-target                           :override)
    (control                 control-info                               :offset        128)
-   (fact-override           fact-info-target                           :offset        160)
    (skel2                   joint-control                              :offset-assert 204)
    (shadow-backup           shadow-geo                                 :offset-assert 208)
    (target-flags            uint32                                     :offset        188)
@@ -284,7 +283,7 @@
     target-carry-drop
     target-carry-falling
     (target-carry-hit-ground symbol)
-    (target-carry-jump float float)
+    (target-carry-jump float float symbol)
     target-carry-pickup
     target-carry-stance
     target-carry-throw
@@ -332,7 +331,7 @@
     (target-indax-jump float float surface)
     target-indax-running-attack
     target-indax-stance
-    target-indax-start
+    (target-indax-start handle)
     target-indax-trip
     target-indax-walk
     (target-jump float float surface)
@@ -344,7 +343,7 @@
     target-mech-carry-drop
     target-mech-carry-falling
     (target-mech-carry-hit-ground symbol)
-    (target-mech-carry-jump float float)
+    (target-mech-carry-jump float float symbol)
     target-mech-carry-pickup
     target-mech-carry-stance
     target-mech-carry-throw
@@ -417,7 +416,7 @@
 (define-perm *target* target #f)
 
 (deftype sidekick (process-drawable)
-  ((parent-override     (pointer target)                   :offset         16)
+  ((parent              (pointer target)                   :override)
    (control             control-info                       :offset        128)
    (anim-seed           uint64                             :offset        208)
    (shadow-in-movie?    symbol                             :offset-assert 216)

@@ -10,6 +10,7 @@ Shader::Shader(const std::string& shader_name, GameVersion version) : m_name(sha
   const std::string height_scale = version == GameVersion::Jak1 ? "1.0" : "0.5";
   const std::string scissor_height = version == GameVersion::Jak1 ? "448.0" : "416.0";
   const std::string scissor_adjust = "512.0 / " + scissor_height;
+
   // read the shader source
   auto vert_src =
       file_util::read_text_file(file_util::get_file_path({shader_folder, shader_name + ".vert"}));
@@ -18,6 +19,7 @@ Shader::Shader(const std::string& shader_name, GameVersion version) : m_name(sha
 
   vert_src = std::regex_replace(vert_src, std::regex("HEIGHT_SCALE"), height_scale);
   vert_src = std::regex_replace(vert_src, std::regex("SCISSOR_HEIGHT"), scissor_height);
+  frag_src = std::regex_replace(frag_src, std::regex("SCISSOR_HEIGHT"), scissor_height);
   vert_src = std::regex_replace(vert_src, std::regex("SCISSOR_ADJUST"), "(" + scissor_adjust + ")");
 
   m_vert_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -63,6 +65,21 @@ Shader::Shader(const std::string& shader_name, GameVersion version) : m_name(sha
     return;
   }
 
+  // uniform samplers must be named matching the texture unit
+  glUseProgram(m_program);
+  for (int i = 1; i < 30; ++i) {
+    std::string uniformName = "tex_T" + std::to_string(i);
+    GLint texLoc = glGetUniformLocation(m_program, uniformName.c_str());
+    if (texLoc != -1) {
+      glUniform1i(texLoc, i);
+    }
+  }
+  // assuming that the bones uniform block is always using binding point 1
+  GLint bonesLoc = glGetUniformBlockIndex(m_program, "ub_bones");
+  if (bonesLoc != -1) {
+    glUniformBlockBinding(m_program, bonesLoc, 1);
+  }
+
   glDeleteShader(m_vert_shader);
   glDeleteShader(m_frag_shader);
   m_is_okay = true;
@@ -77,6 +94,7 @@ ShaderLibrary::ShaderLibrary(GameVersion version) {
   at(ShaderId::SOLID_COLOR) = {"solid_color", version};
   at(ShaderId::DIRECT_BASIC) = {"direct_basic", version};
   at(ShaderId::DIRECT_BASIC_TEXTURED) = {"direct_basic_textured", version};
+  at(ShaderId::DIRECT_BASIC_TEXTURED_MULTI_UNIT) = {"direct_basic_textured_multi_unit", version};
   at(ShaderId::DEBUG_RED) = {"debug_red", version};
   at(ShaderId::SPRITE) = {"sprite_3d", version};
   at(ShaderId::SKY) = {"sky", version};
@@ -106,6 +124,8 @@ ShaderLibrary::ShaderLibrary(GameVersion version) {
   at(ShaderId::GLOW_DRAW) = {"glow_draw", version};
   at(ShaderId::ETIE_BASE) = {"etie_base", version};
   at(ShaderId::ETIE) = {"etie", version};
+  at(ShaderId::SHADOW2) = {"shadow2", version};
+  at(ShaderId::TEX_ANIM) = {"tex_anim", version};
 
   for (auto& shader : m_shaders) {
     ASSERT_MSG(shader.okay(), "error compiling shader");

@@ -12,7 +12,6 @@
 #include "decompiler/IR2/Form.h"
 #include "decompiler/ObjectFile/LinkedObjectFile.h"
 #include "decompiler/analysis/final_output.h"
-#include "decompiler/util/sparticle_decompile.h"
 
 #include "third-party/fmt/core.h"
 
@@ -32,16 +31,18 @@ goos::Object decompile_at_label_with_hint(const LabelInfo& hint,
   if (!hint.array_size.has_value()) {
     // if we don't have an array size, treat it as just a normal type.
     if (hint.is_value) {
-      throw std::runtime_error(fmt::format(
-          "Label {} was marked as a value, but is being decompiled as a reference.", hint.name));
+      throw std::runtime_error(
+          fmt::format("Label {} was marked as a value, but is being decompiled as a reference (1).",
+                      hint.name));
     }
     return decompile_at_label(type, label, labels, words, ts, file, version);
   }
 
   if (type.base_type() == "pointer") {
     if (hint.is_value) {
-      throw std::runtime_error(fmt::format(
-          "Label {} was marked as a value, but is being decompiled as a reference.", hint.name));
+      throw std::runtime_error(
+          fmt::format("Label {} was marked as a value, but is being decompiled as a reference (2).",
+                      hint.name));
     }
     auto field_type_info = ts.lookup_type(type.get_single_arg());
     if (field_type_info->is_reference()) {
@@ -52,11 +53,20 @@ goos::Object decompile_at_label_with_hint(const LabelInfo& hint,
       auto stride = field_type_info->get_size_in_memory();
 
       int word_count = ((stride * (*hint.array_size)) + 3) / 4;
-      std::vector<LinkedWord> obj_words;
-      obj_words.insert(obj_words.begin(),
-                       words.at(label.target_segment).begin() + (label.offset / 4),
-                       words.at(label.target_segment).begin() + (label.offset / 4) + word_count);
+      int max_word = words.at(label.target_segment).size();
+      int start_word = label.offset / 4;
+      if (start_word + word_count > max_word) {
+        throw std::runtime_error(
+            fmt::format("Decompiling array of {} values of type {} would go past the end of the "
+                        "file. The file has {} words, the array starts at word {}, and has length "
+                        "{} words, which would make it end at {}",
+                        *hint.array_size, type.get_single_arg().print(), max_word, start_word,
+                        word_count, start_word + word_count));
+      }
 
+      std::vector<LinkedWord> obj_words;
+      obj_words.insert(obj_words.begin(), words.at(label.target_segment).begin() + start_word,
+                       words.at(label.target_segment).begin() + start_word + word_count);
       return decompile_value_array(type.get_single_arg(), field_type_info, *hint.array_size, stride,
                                    0, obj_words, ts);
     }
@@ -64,8 +74,9 @@ goos::Object decompile_at_label_with_hint(const LabelInfo& hint,
 
   if (type.base_type() == "inline-array") {
     if (hint.is_value) {
-      throw std::runtime_error(fmt::format(
-          "Label {} was marked as a value, but is being decompiled as a reference.", hint.name));
+      throw std::runtime_error(
+          fmt::format("Label {} was marked as a value, but is being decompiled as a reference (3).",
+                      hint.name));
     }
     auto field_type_info = ts.lookup_type(type.get_single_arg());
     if (!field_type_info->is_reference()) {
@@ -218,7 +229,8 @@ goos::Object decompile_at_label(const TypeSpec& type,
     }
   } catch (std::exception& ex) {
     throw std::runtime_error(
-        fmt::format("Unable to 'decompile_at_label' {}, Reason: {}", label.name, ex.what()));
+        fmt::format("Unable to 'decompile_at_label' {} (using type {}), Reason: {}", label.name,
+                    type.print(), ex.what()));
   }
 
   throw std::runtime_error(fmt::format(
@@ -968,16 +980,6 @@ goos::Object decompile_structure(const TypeSpec& type,
   // some structures we want to decompile to fancy macros instead of a raw static definiton
   // temp hack!!
   if (use_fancy_macros && file) {
-    if (file->version == GameVersion::Jak1) {
-      if (type == TypeSpec("sp-field-init-spec")) {
-        ASSERT(file->version == GameVersion::Jak1);  // need to update enums
-        return decompile_sparticle_field_init(type, label, labels, words, ts, file, version);
-      }
-      if (type == TypeSpec("sparticle-group-item")) {
-        ASSERT(file->version == GameVersion::Jak1);  // need to update enums
-        return decompile_sparticle_group_item(type, label, labels, words, ts, file);
-      }
-    }
     if (type == TypeSpec("sound-spec")) {
       return decompile_sound_spec(type, label, labels, words, ts, file, version);
     }
@@ -1233,8 +1235,8 @@ goos::Object decompile_structure(const TypeSpec& type,
                     fmt::format("Failed to decompile: looking at field {} (from {}) with type {}",
                                 field.name(), type_info->get_name(), field.type().print()));
               }
-              field_defs_out.emplace_back(field.name(),
-                                          decompile_value(field.type(), bytes_out, ts));
+              field_defs_out.emplace_back(field.name(), decompile_value(field.type(), bytes_out, ts,
+                                                                        field.decomp_as_type()));
             }
           }
         }
@@ -1426,7 +1428,12 @@ goos::Object decompile_structure(const TypeSpec& type,
           // do nothing, the default is zero?
           field_defs_out.emplace_back(field.name(), pretty_print::to_symbol("0"));
         } else if (word.kind() == LinkedWord::SYM_PTR) {
-          if (word.symbol_name() == "#f" || word.symbol_name() == "#t") {
+          if (word.symbol_name() == "#f") {
+            field_defs_out.emplace_back(
+                field.name(), pretty_print::to_symbol(fmt::format("{}", word.symbol_name())));
+          } else if (!ts.tc(field.type(), TypeSpec("symbol"))) {
+            continue;
+          } else if (word.symbol_name() == "#t") {
             field_defs_out.emplace_back(
                 field.name(), pretty_print::to_symbol(fmt::format("{}", word.symbol_name())));
           } else {
@@ -1510,7 +1517,8 @@ goos::Object bitfield_defs_print(const TypeSpec& type,
 
 goos::Object decompile_value(const TypeSpec& type,
                              const std::vector<u8>& bytes,
-                             const TypeSystem& ts) {
+                             const TypeSystem& ts,
+                             const std::optional<TypeSpec> decomp_as_type) {
   auto as_enum = ts.try_enum_lookup(type);
   if (as_enum) {
     ASSERT((int)bytes.size() == as_enum->get_load_size());
@@ -1559,93 +1567,107 @@ goos::Object decompile_value(const TypeSpec& type,
     }
   }
 
+  const auto& output_type = decomp_as_type ? *decomp_as_type : type;
   // try as common integer types:
+  auto print_int = [](s64 val, bool is_signed, const TypeSpec& ts, s64 hex_cutoff = 100) {
+    if (ts == TypeSpec("seconds") || ts == TypeSpec("time-frame")) {
+      return pretty_print::to_symbol(
+          fmt::format("(seconds {})", fixed_point_to_string(val, TICKS_PER_SECOND)));
+    } else if (!is_signed || val > hex_cutoff) {
+      return pretty_print::to_symbol(fmt::format("#x{:x}", u64(val)));
+    } else {
+      return pretty_print::to_symbol(fmt::format("{}", val));
+    }
+  };
+  auto print_float = [](double val, const TypeSpec& ts) {
+    if (ts == TypeSpec("meters")) {
+      double meters = val / METER_LENGTH;
+      auto rep = pretty_print::float_representation(meters);
+      if (rep.print().find("the-as") != std::string::npos) {
+        return rep;
+      } else {
+        return pretty_print::to_symbol(fmt::format("(meters {})", meters_to_string(val)));
+      }
+    } else if (ts == TypeSpec("degrees")) {
+      double degrees = val / DEGREES_LENGTH;
+      auto rep = pretty_print::float_representation(degrees);
+      if (rep.print().find("the-as") != std::string::npos) {
+        return rep;
+      } else {
+        return pretty_print::to_symbol(fmt::format("(degrees {})", degrees_to_string(val)));
+      }
+    } else if (ts == TypeSpec("fsec")) {
+      double seconds = val / TICKS_PER_SECOND;
+      auto rep = pretty_print::float_representation(seconds);
+      if (rep.print().find("the-as") != std::string::npos) {
+        return rep;
+      } else {
+        return pretty_print::to_symbol(fmt::format("(fsec {})", float_to_string(seconds, false)));
+      }
+    } else {
+      return pretty_print::float_representation(val);
+    }
+  };
   if (ts.tc(TypeSpec("uint32"), type)) {
     ASSERT(bytes.size() == 4);
     u32 value;
     memcpy(&value, bytes.data(), 4);
-    return pretty_print::to_symbol(fmt::format("#x{:x}", u64(value)));
+    return print_int(value, false, output_type);
   } else if (ts.tc(TypeSpec("int32"), type)) {
     ASSERT(bytes.size() == 4);
     s32 value;
     memcpy(&value, bytes.data(), 4);
-    if (value > 100) {
-      return pretty_print::to_symbol(fmt::format("#x{:x}", value));
-    } else {
-      return pretty_print::to_symbol(fmt::format("{}", value));
-    }
+    return print_int(value, true, output_type);
   } else if (ts.tc(TypeSpec("uint16"), type)) {
     ASSERT(bytes.size() == 2);
     u16 value;
     memcpy(&value, bytes.data(), 2);
-    return pretty_print::to_symbol(fmt::format("#x{:x}", u64(value)));
+    return print_int(value, false, output_type);
   } else if (ts.tc(TypeSpec("int16"), type)) {
     ASSERT(bytes.size() == 2);
     s16 value;
     memcpy(&value, bytes.data(), 2);
-    if (value > 100) {
-      return pretty_print::to_symbol(fmt::format("#x{:x}", value));
-    } else {
-      return pretty_print::to_symbol(fmt::format("{}", value));
-    }
-  } else if (ts.tc(TypeSpec("int8"), type)) {
-    ASSERT(bytes.size() == 1);
-    s8 value;
-    memcpy(&value, bytes.data(), 1);
-    if (value > 5) {
-      return pretty_print::to_symbol(fmt::format("#x{:x}", value));
-    } else {
-      return pretty_print::to_symbol(fmt::format("{}", value));
-    }
-  } else if (type == TypeSpec("seconds") || type == TypeSpec("time-frame")) {
-    ASSERT(bytes.size() == 8);
-    s64 value;
-    memcpy(&value, bytes.data(), 8);
-
-    return pretty_print::to_symbol(
-        fmt::format("(seconds {})", fixed_point_to_string(value, TICKS_PER_SECOND)));
-  } else if (ts.tc(TypeSpec("uint64"), type)) {
-    ASSERT(bytes.size() == 8);
-    u64 value;
-    memcpy(&value, bytes.data(), 8);
-    return pretty_print::to_symbol(fmt::format("#x{:x}", value));
-  } else if (ts.tc(TypeSpec("int64"), type)) {
-    ASSERT(bytes.size() == 8);
-    s64 value;
-    memcpy(&value, bytes.data(), 8);
-    if (value > 100) {
-      return pretty_print::to_symbol(fmt::format("#x{:x}", value));
-    } else {
-      return pretty_print::to_symbol(fmt::format("{}", value));
-    }
-  } else if (type == TypeSpec("meters")) {
-    ASSERT(bytes.size() == 4);
-    float value;
-    memcpy(&value, bytes.data(), 4);
-    double meters = (double)value / METER_LENGTH;
-    auto rep = pretty_print::float_representation(meters);
-    if (rep.print().find("the-as") != std::string::npos) {
-      return rep;
-      // return pretty_print::build_list("the-as", "meters", rep);
-    } else {
-      return pretty_print::to_symbol(fmt::format("(meters {})", meters_to_string(value)));
-    }
-  } else if (type == TypeSpec("degrees")) {
-    ASSERT(bytes.size() == 4);
-    float value;
-    memcpy(&value, bytes.data(), 4);
-    double degrees = (double)value / DEGREES_LENGTH;
-    return pretty_print::build_list("degrees", pretty_print::float_representation(degrees));
-  } else if (ts.tc(TypeSpec("float"), type)) {
-    ASSERT(bytes.size() == 4);
-    float value;
-    memcpy(&value, bytes.data(), 4);
-    return pretty_print::float_representation(value);
+    return print_int(value, true, output_type);
   } else if (ts.tc(TypeSpec("uint8"), type)) {
     ASSERT(bytes.size() == 1);
     u8 value;
     memcpy(&value, bytes.data(), 1);
-    return pretty_print::to_symbol(fmt::format("#x{:x}", value));
+    return print_int(value, false, output_type);
+  } else if (ts.tc(TypeSpec("int8"), type)) {
+    ASSERT(bytes.size() == 1);
+    s8 value;
+    memcpy(&value, bytes.data(), 1);
+    return print_int(value, true, output_type);
+  } else if (type == TypeSpec("seconds") || type == TypeSpec("time-frame")) {
+    ASSERT(bytes.size() == 8);
+    s64 value;
+    memcpy(&value, bytes.data(), 8);
+    return print_int(value, false, output_type);
+  } else if (ts.tc(TypeSpec("uint64"), type)) {
+    ASSERT(bytes.size() == 8);
+    u64 value;
+    memcpy(&value, bytes.data(), 8);
+    return print_int(value, false, output_type);
+  } else if (ts.tc(TypeSpec("int64"), type)) {
+    ASSERT(bytes.size() == 8);
+    s64 value;
+    memcpy(&value, bytes.data(), 8);
+    return print_int(value, true, output_type);
+  } else if (type == TypeSpec("meters")) {
+    ASSERT(bytes.size() == 4);
+    float value;
+    memcpy(&value, bytes.data(), 4);
+    return print_float(value, output_type);
+  } else if (type == TypeSpec("degrees")) {
+    ASSERT(bytes.size() == 4);
+    float value;
+    memcpy(&value, bytes.data(), 4);
+    return print_float(value, output_type);
+  } else if (ts.tc(TypeSpec("float"), type)) {
+    ASSERT(bytes.size() == 4);
+    float value;
+    memcpy(&value, bytes.data(), 4);
+    return print_float(value, output_type);
   } else {
     throw std::runtime_error(fmt::format("decompile_value failed on a {}", type.print()));
   }
@@ -1726,7 +1748,7 @@ goos::Object decompile_boxed_array(const TypeSpec& type,
         const auto& elt_label = labels.at(word.label_id());
         if (content_type == TypeSpec("object")) {
           // if there is a type hint for the label, no need to guess!
-          if (file->label_db->label_exists_by_name(elt_label.name)) {
+          if (file->label_db->label_info_known_by_name(elt_label.name)) {
             result.push_back(decompile_at_label_with_hint(file->label_db->lookup(elt_label.name),
                                                           elt_label, labels, words, ts, file,
                                                           version));

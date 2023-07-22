@@ -18,8 +18,12 @@ namespace tfrag3 {
 // - if changing any large things (vertices, vis, bvh, colors, textures) update get_memory_usage
 // - if adding a new category to the memory usage, update extract_level to print it.
 
+constexpr int TFRAG3_VERSION = 38;
+
 enum MemoryUsageCategory {
   TEXTURE,
+
+  SPECIAL_TEXTURE,
 
   TIE_DEINST_VIS,
   TIE_DEINST_INDEX,
@@ -55,6 +59,7 @@ enum MemoryUsageCategory {
   MERC_MOD_VERT,
   MERC_MOD_IND,
   MERC_MOD_TABLE,
+  BLERC,
 
   COLLISION,
 
@@ -73,22 +78,21 @@ struct MemoryUsageTracker {
   void add(MemoryUsageCategory category, u32 size_bytes) { data[category] += size_bytes; }
 };
 
-constexpr int TFRAG3_VERSION = 31;
-
 // These vertices should be uploaded to the GPU at load time and don't change
 struct PreloadedVertex {
   // the vertex position
   float x = 0, y = 0, z = 0;
+  // envmap tint color, not used in == or hash.
+  u8 r = 0, g = 0, b = 0, a = 0;
   // texture coordinates
   float s = 0, t = 0;
 
-  u8 r = 0, g = 0, b = 0, a = 0;  // envmap tint color, not used in == or hash.
+  // not used in == or hash!!
+  // note that this is a 10-bit 3-element field packed into 32-bits.
+  u32 nor = 0;
 
   // color table index
   u16 color_index = 0;
-
-  // not used in == or hash!!
-  s16 nx = 0, ny = 0, nz = 0;
 
   struct hash {
     std::size_t operator()(const PreloadedVertex& x) const;
@@ -113,6 +117,7 @@ struct PackedTieVertices {
     s32 matrix_idx;
     u32 start_vert;
     u32 end_vert;
+    bool has_normals = false;
   };
 
   std::vector<u16> color_indices;
@@ -175,7 +180,7 @@ struct PackedShrubVertices {
 // check visibility.
 struct StripDraw {
   DrawMode mode;        // the OpenGL draw settings.
-  u32 tree_tex_id = 0;  // the texture that should be bound for the draw
+  s32 tree_tex_id = 0;  // the texture that should be bound for the draw (negative for anim slot)
 
   struct {
     u32 idx_of_first_idx_in_full_buffer = 0;
@@ -285,6 +290,18 @@ struct Texture {
   std::string debug_name;
   std::string debug_tpage_name;
   bool load_to_pool = false;
+  void serialize(Serializer& ser);
+  void memory_usage(MemoryUsageTracker* tracker) const;
+};
+
+struct IndexTexture {
+  u16 w, h;
+  u32 combo_id = 0;
+  std::vector<u8> index_data;
+  std::vector<std::string> level_names;
+  std::string name;
+  std::string tpage_name;
+  std::array<math::Vector4<u8>, 256> color_table;
   void serialize(Serializer& ser);
   void memory_usage(MemoryUsageTracker* tracker) const;
 };
@@ -436,7 +453,7 @@ struct CollisionMesh {
 // MERC
 
 struct MercVertex {
-  float pos[3];
+  alignas(32) float pos[3];
   float pad0;
 
   float normal[3];
@@ -455,7 +472,7 @@ static_assert(sizeof(MercVertex) == 64);
 
 struct MercDraw {
   DrawMode mode;
-  u32 tree_tex_id = 0;  // the texture that should be bound for the draw
+  s32 tree_tex_id = 0;  // the texture that should be bound for the draw (negative for anim slot)
   u8 eye_id = 0xff;     // 0xff if not eyes, (slot << 1) | (is_r)
   u32 first_index;
   u32 index_count;
@@ -463,12 +480,38 @@ struct MercDraw {
   void serialize(Serializer& ser);
 };
 
+struct BlercFloatData {
+  // [x, y, z, pad, nx, ny, nz, pad]
+  // note that this should match the layout of the merc vertex above
+  alignas(32) float v[8];
+};
+
+/*!
+ * Data to modify vertices based on blend shapes.
+ */
+struct Blerc {
+  std::vector<BlercFloatData> float_data;
+  std::vector<u32> int_data;
+  static constexpr u32 kTargetIdxTerminator = UINT32_MAX;
+  void serialize(Serializer& ser);
+
+  // int data, per vertex:
+  // [tgt0_idx, tgt1_idx, ..., terminator, dest]
+  // float data, per vertex:
+  // [base, tgt0, tgt1, ...]
+
+  // final vertex position is:
+  // base + sum(tgtn * weights[tgtn_idx])
+};
+
 struct MercModifiableDrawGroup {
   std::vector<MercVertex> vertices;
   std::vector<u16> vertex_lump4_addr;
   std::vector<MercDraw> fix_draw, mod_draw;
   std::vector<u8> fragment_mask;
+  Blerc blerc;
   u32 expect_vidx_end = 0;
+
   void serialize(Serializer& ser);
   void memory_usage(MemoryUsageTracker* tracker) const;
 };
@@ -513,6 +556,7 @@ struct Level {
   u16 version = TFRAG3_VERSION;
   std::string level_name;
   std::vector<Texture> textures;
+  std::vector<IndexTexture> index_textures;
   std::array<std::vector<TfragTree>, TFRAG_GEOS> tfrag_trees;
   std::array<std::vector<TieTree>, TIE_GEOS> tie_trees;
   std::vector<ShrubTree> shrub_trees;

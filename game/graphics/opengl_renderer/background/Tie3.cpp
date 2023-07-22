@@ -136,18 +136,18 @@ void Tie3::load_from_fr3_data(const LevelData* loader_data) {
       );
 
       glVertexAttribIPointer(2,                                // location 2 in the shader
-                             1,                                // 1 values per vert
+                             2,                                // 1 values per vert
                              GL_UNSIGNED_SHORT,                // u16
                              sizeof(tfrag3::PreloadedVertex),  // stride
                              (void*)offsetof(tfrag3::PreloadedVertex, color_index)  // offset (0)
       );
 
       glVertexAttribPointer(3,                                // location 1 in the shader
-                            3,                                // 3 values per vert
-                            GL_SHORT,                         // floats
+                            4,                                // 3 values per vert
+                            GL_INT_2_10_10_10_REV,            // floats
                             GL_TRUE,                          // normalized
                             sizeof(tfrag3::PreloadedVertex),  // stride
-                            (void*)offsetof(tfrag3::PreloadedVertex, nx)  // offset (0)
+                            (void*)offsetof(tfrag3::PreloadedVertex, nor)  // offset (0)
       );
 
       glVertexAttribPointer(4,                                           // location 1 in the shader
@@ -434,11 +434,15 @@ void Tie3::setup_tree(int idx,
     m_color_result.resize(tree.colors->size());
   }
 
+#ifndef __aarch64__
   if (m_use_fast_time_of_day) {
     interp_time_of_day_fast(settings.itimes, tree.tod_cache, m_color_result.data());
   } else {
     interp_time_of_day_slow(settings.itimes, *tree.colors, m_color_result.data());
   }
+#else
+  interp_time_of_day_slow(settings.itimes, *tree.colors, m_color_result.data());
+#endif
 
   glActiveTexture(GL_TEXTURE10);
   glBindTexture(GL_TEXTURE_1D, tree.time_of_day_texture);

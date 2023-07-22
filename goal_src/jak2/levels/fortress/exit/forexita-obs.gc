@@ -68,11 +68,11 @@
     (none)
     )
   :post (behavior ()
-    (when (< (-> self sound-time) (-> self clock frame-counter))
+    (when (< (-> self sound-time) (current-time))
       (sound-stop (-> self sound-id))
       (set! (-> self sound-time) (get-timeframe-offset! (-> self sync) 0))
       )
-    (sound-play "fort-lift-plat" :id (-> self sound-id) :position (-> self root-override trans))
+    (sound-play "fort-lift-plat" :id (-> self sound-id) :position (-> self root trans))
     (plat-post)
     (none)
     )
@@ -105,11 +105,11 @@
     )
   :code (the-as (function none :behavior fort-lift-plat) sleep-code)
   :post (behavior ()
-    (when (< (-> self sound-time) (-> self clock frame-counter))
+    (when (< (-> self sound-time) (current-time))
       (sound-stop (-> self sound-id))
       (set! (-> self sound-time) (get-timeframe-offset! (-> self sync) 0))
       )
-    (sound-play "fort-lift-plat" :id (-> self sound-id) :position (-> self root-override trans))
+    (sound-play "fort-lift-plat" :id (-> self sound-id) :position (-> self root trans))
     (plat-post)
     (none)
     )
@@ -121,7 +121,7 @@
       (spawn-with-cspace (-> obj part) (-> obj node-list data 6))
       )
   (when (nonzero? (-> obj sound))
-    (set! (-> obj sound trans quad) (-> obj root-override trans quad))
+    (set! (-> obj sound trans quad) (-> obj root trans quad))
     (update! (-> obj sound))
     )
   (none)
@@ -186,7 +186,7 @@
       (set! (-> s5-0 backup-collide-as) (-> v1-26 prim-core collide-as))
       (set! (-> s5-0 backup-collide-with) (-> v1-26 prim-core collide-with))
       )
-    (set! (-> obj root-override) s5-0)
+    (set! (-> obj root) s5-0)
     )
   (none)
   )
@@ -201,7 +201,7 @@
 (defmethod init-plat! fort-lift-plat ((obj fort-lift-plat))
   "Does any necessary initial platform setup.
 For example for an elevator pre-compute the distance between the first and last points (both ways) and clear the sound."
-  (set! (-> obj root-override pause-adjust-distance) 327680.0)
+  (set! (-> obj root pause-adjust-distance) 327680.0)
   (set! (-> obj sound-id) (new-sound-id))
   (none)
   )
@@ -223,7 +223,7 @@ otherwise, [[plat::34]]
      )
     ((logtest? (actor-option user18) (-> obj fact options))
      (set! (-> obj path-pos) (res-lump-float (-> obj entity) 'initial-spline-pos))
-     (get-point-at-percent-along-path! (-> obj path) (-> obj root-override trans) (-> obj path-pos) 'interp)
+     (get-point-at-percent-along-path! (-> obj path) (-> obj root trans) (-> obj path-pos) 'interp)
      (go (method-of-object obj plat-anim-active))
      )
     ((> (-> obj sync period) 0)
@@ -282,11 +282,11 @@ otherwise, [[plat::34]]
 (defstate pause (fort-claw)
   :virtual #t
   :enter (behavior ()
-    (set! (-> self state-time) (-> self clock frame-counter))
+    (set! (-> self state-time) (current-time))
     (none)
     )
   :trans (behavior ()
-    (if (>= (- (-> self clock frame-counter) (-> self state-time)) (seconds 2))
+    (if (>= (- (current-time) (-> self state-time)) (seconds 2))
         (go-virtual idle)
         )
     (none)
@@ -324,25 +324,20 @@ This commonly includes things such as:
   (none)
   )
 
-;; failed to figure out what this is:
 (set-subtask-hook!
   *game-info*
-  2
-  3
-  (lambda () (with-pp
-               (until #f
-                 (sound-play "fortress-alarm")
-                 (let ((gp-1 (-> pp clock frame-counter)))
-                   (until (>= (- (-> pp clock frame-counter) gp-1) (seconds 1))
-                     (suspend)
-                     )
-                   )
-                 )
-               (the-as object #f)
-               )
+  (game-task-node fortress-escape-introduction)
+  TASK_MANAGER_CODE_HOOK
+  (lambda :behavior task-manager
+    ()
+    (until #f
+      (sound-play "fortress-alarm")
+      (let ((gp-1 (current-time)))
+        (until (>= (- (current-time) gp-1) (seconds 1))
+          (suspend)
           )
+        )
+      )
+    (the-as object #f)
+    )
   )
-
-
-
-

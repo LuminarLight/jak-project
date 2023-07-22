@@ -410,7 +410,7 @@
           (set! (-> self manipy) (the-as (pointer manipy) #f))
           )
         )
-      (logclear! (-> self control root-prim prim-core action) (collide-action ca-14))
+      (logclear! (-> self control root-prim prim-core action) (collide-action flut))
       (set! (-> self control unknown-surface00) *walk-mods*)
       (logclear! (-> self state-flags) (state-flags use-alt-cam-pos))
       (set! (-> self control dynam gravity-max) (-> self control unknown-dynamics00 gravity-max))
@@ -442,7 +442,7 @@
     (target-collide-set! 'flut (the-as float 0.0))
     (set! (-> self control transv quad) (the-as uint128 0))
     (set! (-> self control unknown-float01) 0.0)
-    (logior! (-> self control root-prim prim-core action) (collide-action ca-14))
+    (logior! (-> self control root-prim prim-core action) (collide-action flut))
     (let ((s5-0 (-> self entity)))
       (set! (-> self entity) (-> self flut entity))
       (set! (-> self manipy)
@@ -1182,7 +1182,7 @@
                          )
                     (if (and v1-11
                              (or (logtest? (-> (the-as collide-shape v1-11) root-prim prim-core collide-as) (collide-kind enemy))
-                                 (logtest? (-> (the-as collide-shape v1-11) root-prim prim-core action) (collide-action ca-10))
+                                 (logtest? (-> (the-as collide-shape v1-11) root-prim prim-core action) (collide-action attackable))
                                  )
                              )
                         (set! (-> self control unknown-uint31) (the-as uint 1))
@@ -1297,7 +1297,7 @@
       (if (and (logtest? (-> self water flags) (water-flags wt09))
                (zero? (mod (- (-> *display* base-frame-counter) (-> self state-time)) 21))
                )
-          (dummy-13
+          (create-splash
             (-> self water)
             (the-as float 0.6)
             (vector<-cspace! (new 'stack-no-clear 'vector) (-> self node-list data 37))
@@ -1565,7 +1565,7 @@
     (set! (-> self control unknown-dword33) 0)
     (set! (-> self control unknown-surface00) *flut-air-attack-mods*)
     (sound-play "flop-land" :pitch -0.4)
-    (dummy-10 (-> self skel effect) 'group-flut-attack-strike-ground (ja-frame-num 0) 0)
+    (effect-control-method-10 (-> self skel effect) 'group-flut-attack-strike-ground (ja-frame-num 0) 0)
     (let ((gp-2 (process-spawn touch-tracker :init touch-tracker-init (-> self control trans) 4096.0 30 :to self)))
       (send-event (ppointer->process gp-2) 'event 'attack 'flut-attack)
       (send-event (ppointer->process gp-2) 'function (lambda :behavior target
@@ -2039,7 +2039,7 @@
       (rot->dir-targ! (-> self control))
       (ja-post)
       (vector<-cspace! gp-0 (-> self node-list data 3))
-      (set! (-> gp-0 y) (+ -5896.192 (-> gp-0 y)))
+      (+! (-> gp-0 y) -5896.192)
       (move-to-point! (-> self control) gp-0)
       )
     (send-event *camera* 'ease-in)

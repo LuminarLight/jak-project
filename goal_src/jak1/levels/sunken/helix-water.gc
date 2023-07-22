@@ -86,8 +86,8 @@
   :size-assert         #xc8
   :flag-assert         #x16006000c8
   (:methods
-    (dummy-20 (_type_) none 20)
-    (dummy-21 (_type_) object 21)
+    (helix-water-method-20 (_type_) none 20)
+    (helix-water-method-21 (_type_) object 21)
     )
   (:states
     helix-water-activated
@@ -188,7 +188,7 @@
     (let ((s3-0 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 0) (the-as uint 0))))
       (set! (-> s3-0 prim-core collide-as) (collide-kind wall-object))
       (set! (-> s3-0 collide-with) (collide-kind target))
-      (set! (-> s3-0 prim-core action) (collide-action solid ca-1))
+      (set! (-> s3-0 prim-core action) (collide-action solid rider-plat-sticky))
       (set! (-> s3-0 prim-core offense) (collide-offense indestructible))
       (set! (-> s3-0 transform-index) 3)
       (set-vector! (-> s3-0 local-sphere) 0.0 22528.0 0.0 53248.0)
@@ -222,7 +222,7 @@
     (when (not (task-complete? *game-info* (game-task sunken-slide)))
       (let ((a0-1 (new 'stack-no-clear 'vector)))
         (set! (-> a0-1 quad) (-> self root-override trans quad))
-        (set! (-> a0-1 y) (+ 30720.0 (-> a0-1 y)))
+        (+! (-> a0-1 y) 30720.0)
         (let ((v1-7 (birth-pickup-at-point
                       a0-1
                       (pickup-type fuel-cell)
@@ -336,13 +336,7 @@
     (until (>= (- (-> *display* base-frame-counter) (-> self state-time)) (seconds 1.5))
       (suspend)
       )
-    (level-hint-spawn
-      (game-text-id sunken-helix-hint)
-      "sksp0124"
-      (the-as entity #f)
-      *entity-pool*
-      (game-task none)
-      )
+    (level-hint-spawn (text-id sunken-helix-hint) "sksp0124" (the-as entity #f) *entity-pool* (game-task none))
     (send-event *target* 'play-anim 'shock-in)
     (sound-play "prec-button8")
     (set! (-> self root-override transv quad) (the-as uint128 0))
@@ -411,7 +405,7 @@
         )
       )
     (level-hint-spawn
-      (game-text-id sunken-helix-darkeco-hint)
+      (text-id sunken-helix-darkeco-hint)
       "sksp0128"
       (the-as entity #f)
       *entity-pool*
@@ -534,7 +528,7 @@
     (let ((s3-0 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 0) (the-as uint 0))))
       (set! (-> s3-0 prim-core collide-as) (collide-kind ground-object))
       (set! (-> s3-0 collide-with) (collide-kind target))
-      (set! (-> s3-0 prim-core action) (collide-action solid ca-1))
+      (set! (-> s3-0 prim-core action) (collide-action solid rider-plat-sticky))
       (set! (-> s3-0 prim-core offense) (collide-offense indestructible))
       (set! (-> s3-0 transform-index) 0)
       (set-vector! (-> s3-0 local-sphere) 0.0 14336.0 0.0 22118.4)
@@ -557,7 +551,7 @@
     (set! (-> s5-1 frame-num) 0.0)
     )
   (set! (-> obj spawn-trans quad) (-> obj root-override trans quad))
-  (set! (-> obj root-override trans y) (+ -26624.0 (-> obj root-override trans y)))
+  (+! (-> obj root-override trans y) -26624.0)
   (set! (-> obj down-y) (+ -6553.6 (-> obj root-override trans y)))
   (set! (-> obj fact)
         (new 'process 'fact-info obj (pickup-type eco-pill-random) (-> *FACT-bank* default-pill-inc))
@@ -569,7 +563,7 @@
   (none)
   )
 
-(defmethod dummy-21 helix-water ((obj helix-water))
+(defmethod helix-water-method-21 helix-water ((obj helix-water))
   (let ((s5-0 (+ (-> obj last-alt-actor-consumed) 1)))
     (when (< s5-0 (-> obj alt-actors length))
       (let* ((v1-5 (-> obj alt-actors s5-0))
@@ -617,7 +611,7 @@
                       (go helix-water-activated)
                       )
                      (('music)
-                      (set-setting! 'music 'danger 0.0 0)
+                      (the-as object (set-setting! 'music 'danger 0.0 0))
                       )
                      )
             )
@@ -675,7 +669,7 @@
         (set! (-> self root trans y) (-> self end-y))
         )
     (send-event (ppointer->process (-> self dark-eco)) 'move-to (-> self root trans))
-    (dummy-21 self)
+    (helix-water-method-21 self)
     (none)
     )
   :code (behavior ()

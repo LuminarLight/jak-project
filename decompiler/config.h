@@ -8,7 +8,7 @@
 
 #include "common/common_types.h"
 #include "common/util/FileUtil.h"
-#include "common/versions.h"
+#include "common/versions/versions.h"
 
 #include "decompiler/Disasm/Register.h"
 #include "decompiler/data/game_text.h"
@@ -158,6 +158,8 @@ struct Config {
   std::unordered_map<std::string, ObjectPatchInfo> object_patches;
 
   std::unordered_map<std::string, int> bad_format_strings;
+
+  std::unordered_set<std::string> animated_textures;
 
   std::vector<std::string> levels_to_extract;
   bool levels_extract;

@@ -16,6 +16,7 @@
 
 #include "common/common_types.h"
 #include "common/util/BinaryReader.h"
+#include "common/util/string_util.h"
 #include "common/util/unicode_util.h"
 
 // This disables the use of PCLMULQDQ which is probably ok, but let's just be safe and disable it
@@ -36,6 +37,13 @@
 #endif
 #include "common/log/log.h"
 #include "common/util/Assert.h"
+
+#ifdef __APPLE__
+#include <crt_externs.h>
+#include <limits.h>
+
+#include "mach-o/dyld.h"
+#endif
 
 namespace file_util {
 fs::path get_user_home_dir() {
@@ -63,6 +71,9 @@ fs::path get_user_config_dir() {
   } else {
     config_base_path = fs::path(config_base_dir);
   }
+#elif __APPLE__
+  auto config_base_dir = get_env("HOME");
+  config_base_path = fs::path(config_base_dir) / "Library" / "Application Support";
 #endif
   return config_base_path / "OpenGOAL";
 }
@@ -100,31 +111,40 @@ std::string get_current_executable_path() {
     return file_path.substr(4);
   }
   return file_path;
-#else
-  // do Linux stuff
+#elif __linux
   char buffer[FILENAME_MAX + 1];
   auto len = readlink("/proc/self/exe", buffer,
                       FILENAME_MAX);  // /proc/self acts like a "virtual folder" containing
   // information about the current process
   buffer[len] = '\0';
   return std::string(buffer);
+#elif __APPLE__
+  char buffer[PATH_MAX];
+  uint32_t bufsize = sizeof(buffer);
+  if (_NSGetExecutablePath(buffer, &bufsize) != 0) {
+    lg::warn("Could not get executable path, trying with _NSGetArgv()[0] instead.");
+    auto argv = *_NSGetArgv();
+    return std::string(argv[0]);
+  }
+  return std::string(buffer);
 #endif
+}
+
+std::optional<std::string> try_get_project_path_from_path(const std::string& path) {
+  std::string::size_type pos =
+      std::string(path).rfind("jak-project");  // Strip file path down to /jak-project/ directory
+  if (pos == std::string::npos) {
+    return {};
+  }
+  return std::string(path).substr(
+      0, pos + 11);  // + 12 to include "/jak-project" in the returned filepath
 }
 
 /*!
  * See if the current executable is somewhere in jak-project/. If so, return the path to jak-project
  */
 std::optional<std::string> try_get_jak_project_path() {
-  std::string my_path = get_current_executable_path();
-
-  std::string::size_type pos =
-      std::string(my_path).rfind("jak-project");  // Strip file path down to /jak-project/ directory
-  if (pos == std::string::npos) {
-    return {};
-  }
-
-  return std::make_optional(std::string(my_path).substr(
-      0, pos + 11));  // + 12 to include "/jak-project" in the returned filepath
+  return try_get_project_path_from_path(get_current_executable_path());
 }
 
 std::optional<fs::path> try_get_data_dir() {
@@ -144,9 +164,9 @@ bool setup_project_path(std::optional<fs::path> project_path_override) {
   }
 
   if (project_path_override) {
-    gFilePathInfo.path_to_data = *project_path_override;
+    gFilePathInfo.path_to_data = fs::absolute(project_path_override.value());
     gFilePathInfo.initialized = true;
-    lg::info("Using explicitly set project path: {}", project_path_override->string());
+    lg::info("Using explicitly set project path: {}", gFilePathInfo.path_to_data.string());
     return true;
   }
 
@@ -200,10 +220,12 @@ bool create_dir_if_needed(const fs::path& path) {
   return false;
 }
 
+// TODO - explodes if the file path is invalid
 bool create_dir_if_needed_for_file(const std::string& path) {
   return create_dir_if_needed_for_file(fs::path(path));
 }
 
+// TODO - explodes if the file path is invalid
 bool create_dir_if_needed_for_file(const fs::path& path) {
   return fs::create_directories(path.parent_path());
 }
@@ -373,6 +395,19 @@ std::string convert_to_unix_path_separators(const std::string& path) {
 #endif
 }
 
+/*!
+ * Convert an animation name to ISO name.
+ * The animation name is a bunch of dash separated words.
+ * The resulting ISO name has the same first two chars as the animation name, and one char from each
+ * remaining word. Once there are no more words but remaining chars in the ISO name, the ith extra
+ * char is the i+1 th char of the last word. A word ending in a number (or just a number) is turned
+ * into the number. The word "resolution" becomes z. The word "accept" becomes y. The word "reject"
+ * becomes n. Other words become the first char of the word. The result is uppercased and the file
+ * extension is STR Examples (animation name and disc file name, not ISO name):
+ *  green-sagecage-outro-beat-boss-enough-cells -> GRSOBBEC.STR
+ *  swamp-tetherrock-swamprockexplode-4 -> SWTS4.STR
+ *  minershort-resolution-1-orbs -> MIZ1ORBS.STR
+ */
 void ISONameFromAnimationName(char* dst, const char* src) {
   // The Animation Name is a bunch of words separated by dashes
 
@@ -457,6 +492,15 @@ void ISONameFromAnimationName(char* dst, const char* src) {
   strcpy(dst + 8, "STR");
 }
 
+/*!
+ * Convert file name to "ISO Name"
+ * ISO names are upper case and 12 bytes long.
+ * xxxxxxxxyyy0
+ *
+ * x - uppercase letter of file name, or space
+ * y - uppercase letter of file extension, or space
+ * 0 - null terminator (\0, not the character zero)
+ */
 void MakeISOName(char* dst, const char* src) {
   int i = 0;
   const char* src_ptr = src;
@@ -611,6 +655,20 @@ void copy_file(const fs::path& src, const fs::path& dst) {
         "Cannot copy '{}', couldn't make directory to copy into '{}'", src.string(), dst.string()));
   }
   fs::copy_file(src, dst, fs::copy_options::overwrite_existing);
+}
+
+std::string make_screenshot_filepath(const GameVersion game_version, const std::string& name) {
+  std::string file_name;
+  if (name.empty()) {
+    file_name = fmt::format("{}_{}.png", version_to_game_name(game_version),
+                            str_util::current_local_timestamp_no_colons());
+  } else {
+    file_name = fmt::format("{}_{}_{}.png", version_to_game_name(game_version), name,
+                            str_util::current_local_timestamp_no_colons());
+  }
+  const auto file_path = file_util::get_file_path({"screenshots", file_name});
+  file_util::create_dir_if_needed_for_file(file_path);
+  return file_path;
 }
 
 }  // namespace file_util

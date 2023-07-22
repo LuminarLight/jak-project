@@ -141,15 +141,51 @@
          (cons (first lst) (filter pred (cdr lst))))
         (#t (filter pred (cdr lst)))))
 
+(desfun member (x a)
+  (if (null? a)
+      #f
+      (if (eq? (car a) x)
+          a
+          (member x (cdr a))
+          )
+      )
+	)
+
 (desfun assoc (x a)
   (if (null? a)
-      '()
+      #f
       (if (eq? (caar a) x)
           (car a)
           (assoc x (cdr a))
           )
       )
 	)
+
+(desfun assocn (x a)
+  (let ((i -1)
+        (ret -1)
+        (iter a))
+    (while (and (< ret 0) (not (null? iter)))
+      (inc! i)
+      (when (eq? (car iter) x)
+          (set! ret i))
+      (set! iter (cdr iter)))
+    ret)
+  )
+
+(desfun nth (n a)
+  (let ((i -1)
+        (ret #f)
+        (stop? #f)
+        (iter a))
+    (while (and (not stop?) (not (null? iter)))
+      (inc! i)
+      (when (eq? i n)
+          (set! ret (car iter))
+          (set! stop? #t))
+      (set! iter (cdr iter)))
+    ret)
+  )
 
 (desfun list (&rest items)
   (apply (lambda (x) x) items)
@@ -467,3 +503,5 @@
 (define *jak1-full-game* (if (user? dass) #t #f))
 (define *jak1-territory* GAME_TERRITORY_SCEA)
 
+;; whether to enable ps3 test levels for jak 2
+(define USE_PS3_LEVELS #f)

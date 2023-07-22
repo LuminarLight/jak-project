@@ -175,9 +175,7 @@
 ;; definition for function ecoclaw-handler
 ;; INFO: Used lq/sq
 ;; INFO: Return type mismatch none vs object.
-;; WARN: Failed load: (set! a0-3 (l.wu (+ gp-1 -4))) at op 13
-;; WARN: Failed load: (set! a0-6 (l.wu (+ s5-0 -4))) at op 41
-;; WARN: Failed load: (set! a0-7 (l.wu (+ s5-1 -4))) at op 65
+;; ERROR: Failed load: (set! a0-3 (l.wu (+ gp-1 -4))) at op 13
 ;; WARN: rewrite_to_get_var got a none typed variable. Is there unreachable code? [OP: 28]
 ;; WARN: rewrite_to_get_var got a none typed variable. Is there unreachable code? [OP: 79]
 (defbehavior ecoclaw-handler ecoclaw ((arg0 process) (arg1 int) (arg2 symbol) (arg3 event-message-block))
@@ -206,7 +204,7 @@
                )
          )
        (set! (-> self particles 1 trans quad) (-> self root trans quad))
-       (set! (-> self particles 1 trans y) (+ 24576.0 (-> self particles 1 trans y)))
+       (+! (-> self particles 1 trans y) 24576.0)
        (let ((s5-1 (-> arg3 param 1)))
          (set! (-> self particles 2 kind)
                (the-as basic (if (and (nonzero? s5-1) (type-type? (rtype-of s5-1) sparticle-launch-group))
@@ -417,14 +415,14 @@
     (let ((s3-0 (new 'process 'collide-shape-prim-group s4-0 (the-as uint 4) 0)))
       (set! (-> s3-0 prim-core collide-as) (collide-kind ground-object))
       (set! (-> s3-0 collide-with) (collide-kind target))
-      (set! (-> s3-0 prim-core action) (collide-action solid ca-1))
+      (set! (-> s3-0 prim-core action) (collide-action solid rider-plat-sticky))
       (set! (-> s3-0 transform-index) 0)
       (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 102400.0)
       (set-root-prim! s4-0 s3-0)
       (let ((s2-0 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 0) (the-as uint 0))))
         (set! (-> s2-0 prim-core collide-as) (collide-kind ground-object))
         (set! (-> s2-0 collide-with) (collide-kind target))
-        (set! (-> s2-0 prim-core action) (collide-action solid ca-1 ca-4))
+        (set! (-> s2-0 prim-core action) (collide-action solid rider-plat-sticky rider-plat))
         (set! (-> s2-0 prim-core offense) (collide-offense indestructible))
         (set! (-> s2-0 transform-index) 5)
         (set-vector! (-> s2-0 local-sphere) 0.0 0.0 0.0 102400.0)
@@ -433,7 +431,7 @@
       (let ((s2-1 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 1) (the-as uint 0))))
         (set! (-> s2-1 prim-core collide-as) (collide-kind ground-object))
         (set! (-> s2-1 collide-with) (collide-kind target))
-        (set! (-> s2-1 prim-core action) (collide-action solid ca-1 ca-4))
+        (set! (-> s2-1 prim-core action) (collide-action solid rider-plat-sticky rider-plat))
         (set! (-> s2-1 prim-core offense) (collide-offense indestructible))
         (set! (-> s2-1 transform-index) 4)
         (set-vector! (-> s2-1 local-sphere) 0.0 0.0 0.0 102400.0)
@@ -442,7 +440,7 @@
       (let ((s2-2 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 2) (the-as uint 0))))
         (set! (-> s2-2 prim-core collide-as) (collide-kind ground-object))
         (set! (-> s2-2 collide-with) (collide-kind target))
-        (set! (-> s2-2 prim-core action) (collide-action solid ca-1 ca-4))
+        (set! (-> s2-2 prim-core action) (collide-action solid rider-plat-sticky rider-plat))
         (set! (-> s2-2 prim-core offense) (collide-offense indestructible))
         (set! (-> s2-2 transform-index) 7)
         (set-vector! (-> s2-2 local-sphere) 0.0 0.0 0.0 102400.0)
@@ -451,7 +449,7 @@
       (let ((s2-3 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 3) (the-as uint 0))))
         (set! (-> s2-3 prim-core collide-as) (collide-kind ground-object))
         (set! (-> s2-3 collide-with) (collide-kind target))
-        (set! (-> s2-3 prim-core action) (collide-action solid ca-1 ca-4))
+        (set! (-> s2-3 prim-core action) (collide-action solid rider-plat-sticky rider-plat))
         (set! (-> s2-3 prim-core offense) (collide-offense indestructible))
         (set! (-> s2-3 transform-index) 6)
         (set-vector! (-> s2-3 local-sphere) 0.0 0.0 0.0 102400.0)
@@ -568,7 +566,7 @@
 ;; INFO: Return type mismatch object vs none.
 (defbehavior finalbosscam-init-by-other finalbosscam ((arg0 entity-actor))
   (set! (-> self entity) arg0)
-  (dummy-40 self arg0 *finalbosscam-sg* 4 4 (new 'static 'vector :w 4096.0) 4)
+  (process-taskable-method-40 self arg0 *finalbosscam-sg* 4 4 (new 'static 'vector :w 4096.0) 4)
   (set! (-> self tasks) (get-task-control (game-task finalboss-movies)))
   (set! (-> self robotboss) (the-as handle #f))
   (go-virtual hidden)

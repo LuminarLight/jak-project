@@ -2,7 +2,11 @@
 
 #include "background_common.h"
 
+#ifdef __aarch64__
+#include "third-party/sse2neon/sse2neon.h"
+#else
 #include <immintrin.h>
+#endif
 
 #include "common/util/os.h"
 
@@ -186,6 +190,9 @@ void first_tfrag_draw_setup(const TfragRenderSettings& settings,
   glUniform4f(glGetUniformLocation(id, "fog_color"), render_state->fog_color[0] / 255.f,
               render_state->fog_color[1] / 255.f, render_state->fog_color[2] / 255.f,
               render_state->fog_intensity / 255);
+
+  glUniform1f(glGetUniformLocation(id, "fog_hack_threshold"),
+              render_state->version == GameVersion::Jak1 ? 0.005f : 0);
 }
 
 void interp_time_of_day_slow(const math::Vector<s32, 4> itimes[4],
@@ -215,6 +222,7 @@ void interp_time_of_day_slow(const math::Vector<s32, 4> itimes[4],
       }
       // result += in[color].rgba[component].cast<float>() * weights[component];
     }
+
     result[0] = std::min(result[0], 255.f);
     result[1] = std::min(result[1], 255.f);
     result[2] = std::min(result[2], 255.f);
@@ -270,6 +278,7 @@ SwizzledTimeOfDay swizzle_time_of_day(const std::vector<tfrag3::TimeOfDayColor>&
   return out;
 }
 
+#ifndef __aarch64__
 void interp_time_of_day_fast(const math::Vector<s32, 4> itimes[4],
                              const SwizzledTimeOfDay& swizzled_colors,
                              math::Vector<u8, 4>* out) {
@@ -346,15 +355,15 @@ void interp_time_of_day_fast(const math::Vector<s32, 4> itimes[4],
       color7 = _mm_mullo_epi16(color7, weights7);
 
       // add. This order minimizes dependencies.
-      color0 = _mm_add_epi16(color0, color1);
-      color2 = _mm_add_epi16(color2, color3);
-      color4 = _mm_add_epi16(color4, color5);
-      color6 = _mm_add_epi16(color6, color7);
+      color0 = _mm_adds_epi16(color0, color1);
+      color2 = _mm_adds_epi16(color2, color3);
+      color4 = _mm_adds_epi16(color4, color5);
+      color6 = _mm_adds_epi16(color6, color7);
 
-      color0 = _mm_add_epi16(color0, color2);
-      color4 = _mm_add_epi16(color4, color6);
+      color0 = _mm_adds_epi16(color0, color2);
+      color4 = _mm_adds_epi16(color4, color6);
 
-      color0 = _mm_add_epi16(color0, color4);
+      color0 = _mm_adds_epi16(color0, color4);
 
       // divide, because we multiplied our weights by 2^7.
       color0 = _mm_srli_epi16(color0, 6);
@@ -401,15 +410,15 @@ void interp_time_of_day_fast(const math::Vector<s32, 4> itimes[4],
       color7 = _mm_mullo_epi16(color7, weights7);
 
       // add. This order minimizes dependencies.
-      color0 = _mm_add_epi16(color0, color1);
-      color2 = _mm_add_epi16(color2, color3);
-      color4 = _mm_add_epi16(color4, color5);
-      color6 = _mm_add_epi16(color6, color7);
+      color0 = _mm_adds_epi16(color0, color1);
+      color2 = _mm_adds_epi16(color2, color3);
+      color4 = _mm_adds_epi16(color4, color5);
+      color6 = _mm_adds_epi16(color6, color7);
 
-      color0 = _mm_add_epi16(color0, color2);
-      color4 = _mm_add_epi16(color4, color6);
+      color0 = _mm_adds_epi16(color0, color2);
+      color4 = _mm_adds_epi16(color4, color6);
 
-      color0 = _mm_add_epi16(color0, color4);
+      color0 = _mm_adds_epi16(color0, color4);
 
       // divide, because we multiplied our weights by 2^7.
       color0 = _mm_srli_epi16(color0, 6);
@@ -425,6 +434,7 @@ void interp_time_of_day_fast(const math::Vector<s32, 4> itimes[4],
     }
   }
 }
+#endif
 
 bool sphere_in_view_ref(const math::Vector4f& sphere, const math::Vector4f* planes) {
   math::Vector4f acc =

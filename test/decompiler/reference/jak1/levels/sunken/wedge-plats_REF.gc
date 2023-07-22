@@ -56,9 +56,9 @@
 ;; INFO: Used lq/sq
 ;; INFO: Return type mismatch object vs none.
 (defmethod init-from-entity! wedge-plat-master ((obj wedge-plat-master) (arg0 entity-actor))
-  (set! (-> obj mask) (logior (process-mask platform) (-> obj mask)))
+  (logior! (-> obj mask) (process-mask platform))
   (set! (-> obj center quad) (-> arg0 extra trans quad))
-  (set! (-> obj center y) (+ 819.2 (-> obj center y)))
+  (+! (-> obj center y) 819.2)
   (set! (-> obj rotspeed) (res-lump-float arg0 'rotspeed))
   (set! (-> obj rotate-inner) 0.0)
   (set! (-> obj rotate-outer) 0.0)
@@ -78,7 +78,7 @@
   :size-assert         #xf0
   :flag-assert         #x1c008000f0
   (:methods
-    (dummy-27 (_type_) symbol 27)
+    (wedge-plat-method-27 (_type_) symbol 27)
     )
   (:states
     wedge-plat-idle
@@ -104,7 +104,7 @@
               )
 
 ;; definition for method 27 of type wedge-plat
-(defmethod dummy-27 wedge-plat ((obj wedge-plat))
+(defmethod wedge-plat-method-27 wedge-plat ((obj wedge-plat))
   (let* ((a0-1 (-> obj master))
          (v1-0 (if a0-1
                    (-> (the-as process-drawable (-> a0-1 ppointer)) brother)
@@ -143,7 +143,7 @@
   :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
     (the-as object (case event-type
                      (('bonk)
-                      (dummy-22 self)
+                      (the-as symbol (baseplat-method-22 self))
                       )
                      )
             )
@@ -152,7 +152,7 @@
   :code (behavior ()
     (ja :num-func num-func-identity :frame-num (ja-aframe 0.0 0))
     (loop
-      (if (dummy-27 self)
+      (if (wedge-plat-method-27 self)
           (go wedge-plat-tip)
           )
       (suspend)
@@ -167,7 +167,7 @@
   :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
     (the-as object (case event-type
                      (('bonk)
-                      (dummy-22 self)
+                      (the-as symbol (baseplat-method-22 self))
                       )
                      (('touch)
                       (send-event proc 'no-look-around (seconds 1.5))
@@ -183,7 +183,7 @@
                 :frame-num (ja-aframe 0.0 0)
                 )
     (until (ja-done? 0)
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       (ja :num! (seek! (ja-aframe 60.0 0)))
       )
@@ -192,14 +192,14 @@
                 :frame-num (ja-aframe 60.0 0)
                 )
     (until (ja-done? 0)
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       (ja :num! (seek! (ja-aframe 100.0 0)))
       )
     (set! (-> self state-time) (-> *display* base-frame-counter))
     (until (>= (- (-> *display* base-frame-counter) (-> self state-time)) (seconds 1))
       (ja :num-func num-func-identity :frame-num (ja-aframe 100.0 0))
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       )
     (ja-no-eval :group! (-> self draw art-group data 3)
@@ -207,7 +207,7 @@
                 :frame-num (ja-aframe 100.0 0)
                 )
     (until (ja-done? 0)
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       (ja :num! (seek! (ja-aframe 153.0 0)))
       )
@@ -220,7 +220,7 @@
 ;; definition for method 11 of type wedge-plat
 ;; INFO: Return type mismatch object vs none.
 (defmethod init-from-entity! wedge-plat ((obj wedge-plat) (arg0 entity-actor))
-  (set! (-> obj mask) (logior (process-mask platform) (-> obj mask)))
+  (logior! (-> obj mask) (process-mask platform))
   (let ((s4-0 (new 'process 'collide-shape-moving obj (collide-list-enum hit-by-player))))
     (set! (-> s4-0 dynam) (copy *standard-dynamics* 'process))
     (set! (-> s4-0 reaction) default-collision-reaction)
@@ -231,7 +231,7 @@
     (let ((s3-0 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 0) (the-as uint 0))))
       (set! (-> s3-0 prim-core collide-as) (collide-kind ground-object))
       (set! (-> s3-0 collide-with) (collide-kind target))
-      (set! (-> s3-0 prim-core action) (collide-action solid ca-1))
+      (set! (-> s3-0 prim-core action) (collide-action solid rider-plat-sticky))
       (set! (-> s3-0 prim-core offense) (collide-offense indestructible))
       (set! (-> s3-0 transform-index) 3)
       (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 24576.0)
@@ -245,7 +245,7 @@
   (initialize-skeleton obj *wedge-plat-sg* '())
   (logior! (-> obj skel status) (janim-status inited))
   (update-transforms! (-> obj root-override))
-  (dummy-21 obj)
+  (baseplat-method-21 obj)
   (set! (-> obj master) (the-as wedge-plat-master (entity-actor-lookup arg0 'alt-actor 0)))
   (set! (-> obj offset) (res-lump-float arg0 'rotoffset))
   (set! (-> obj distance) (res-lump-float arg0 'distance :default 36864.0))
@@ -282,7 +282,7 @@
               )
 
 ;; definition for method 27 of type wedge-plat-outer
-(defmethod dummy-27 wedge-plat-outer ((obj wedge-plat-outer))
+(defmethod wedge-plat-method-27 wedge-plat-outer ((obj wedge-plat-outer))
   (let* ((a0-1 (-> obj master))
          (v1-0 (if a0-1
                    (-> (the-as process-drawable (-> a0-1 ppointer)) brother)
@@ -321,7 +321,7 @@
   :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
     (the-as object (case event-type
                      (('bonk)
-                      (dummy-22 self)
+                      (the-as symbol (baseplat-method-22 self))
                       )
                      )
             )
@@ -330,7 +330,7 @@
   :code (behavior ()
     (loop
       (ja :num-func num-func-identity :frame-num (ja-aframe 0.0 0))
-      (if (dummy-27 self)
+      (if (wedge-plat-method-27 self)
           (go wedge-plat-outer-tip)
           )
       (suspend)
@@ -345,7 +345,7 @@
   :event (behavior ((proc process) (arg1 int) (event-type symbol) (event event-message-block))
     (the-as object (case event-type
                      (('bonk)
-                      (dummy-22 self)
+                      (the-as object (baseplat-method-22 self))
                       )
                      (('touch)
                       (send-event proc 'no-look-around (seconds 1.5))
@@ -360,7 +360,7 @@
                 :frame-num (ja-aframe 0.0 0)
                 )
     (until (ja-done? 0)
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       (ja :num! (seek! (ja-aframe 60.0 0)))
       )
@@ -369,14 +369,14 @@
                 :frame-num (ja-aframe 60.0 0)
                 )
     (until (ja-done? 0)
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       (ja :num! (seek! (ja-aframe 100.0 0)))
       )
     (set! (-> self state-time) (-> *display* base-frame-counter))
     (until (>= (- (-> *display* base-frame-counter) (-> self state-time)) (seconds 1))
       (ja :num-func num-func-identity :frame-num (ja-aframe 100.0 0))
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       )
     (ja-no-eval :group! (-> self draw art-group data 3)
@@ -384,7 +384,7 @@
                 :frame-num (ja-aframe 100.0 0)
                 )
     (until (ja-done? 0)
-      (dummy-27 self)
+      (wedge-plat-method-27 self)
       (suspend)
       (ja :num! (seek! (ja-aframe 153.0 0)))
       )
@@ -397,7 +397,7 @@
 ;; definition for method 11 of type wedge-plat-outer
 ;; INFO: Return type mismatch object vs none.
 (defmethod init-from-entity! wedge-plat-outer ((obj wedge-plat-outer) (arg0 entity-actor))
-  (set! (-> obj mask) (logior (process-mask platform) (-> obj mask)))
+  (logior! (-> obj mask) (process-mask platform))
   (let ((s4-0 (new 'process 'collide-shape-moving obj (collide-list-enum hit-by-player))))
     (set! (-> s4-0 dynam) (copy *standard-dynamics* 'process))
     (set! (-> s4-0 reaction) default-collision-reaction)
@@ -408,7 +408,7 @@
     (let ((s3-0 (new 'process 'collide-shape-prim-mesh s4-0 (the-as uint 0) (the-as uint 0))))
       (set! (-> s3-0 prim-core collide-as) (collide-kind ground-object))
       (set! (-> s3-0 collide-with) (collide-kind target))
-      (set! (-> s3-0 prim-core action) (collide-action solid ca-1 ca-4))
+      (set! (-> s3-0 prim-core action) (collide-action solid rider-plat-sticky rider-plat))
       (set! (-> s3-0 prim-core offense) (collide-offense indestructible))
       (set! (-> s3-0 transform-index) 3)
       (set-vector! (-> s3-0 local-sphere) 0.0 0.0 0.0 32768.0)
@@ -422,7 +422,7 @@
   (initialize-skeleton obj *wedge-plat-sg* '())
   (logior! (-> obj skel status) (janim-status inited))
   (update-transforms! (-> obj root-override))
-  (dummy-21 obj)
+  (baseplat-method-21 obj)
   (set! (-> obj master) (the-as wedge-plat-master (entity-actor-lookup arg0 'alt-actor 0)))
   (set! (-> obj offset) (res-lump-float arg0 'rotoffset))
   (set! (-> obj distance) (res-lump-float arg0 'distance :default 69632.0))

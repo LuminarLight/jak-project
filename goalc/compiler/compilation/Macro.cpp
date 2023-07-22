@@ -52,7 +52,11 @@ Val* Compiler::compile_goos_macro(const goos::Object& o,
       bool good_info = false;
       auto info = m_goos.reader.db.get_info_for(o, &good_info);
       lg::print(fg(fmt::color::yellow) | fmt::emphasis::bold, "Code:\n");
-      lg::print("{}\n", pretty_print::to_string(goos_result, 120));
+      auto code_str = pretty_print::to_string(goos_result, 120);
+      if (code_str.size() > 120 * 30) {
+        code_str = code_str.substr(0, 120 * 30) + "...";
+      }
+      lg::print("{}\n", code_str);
       lg::print(fg(fmt::color::yellow) | fmt::emphasis::bold, "From macro: ");
       lg::print(fg(fmt::color::orange), "{}\n", name.print());
       if (good_info) {
@@ -70,7 +74,11 @@ Val* Compiler::compile_goos_macro(const goos::Object& o,
     bool good_info = false;
     auto info = m_goos.reader.db.get_info_for(o, &good_info);
     lg::print(fg(fmt::color::yellow) | fmt::emphasis::bold, "Code:\n");
-    lg::print("{}\n", pretty_print::to_string(goos_result, 120));
+    auto code_str = pretty_print::to_string(goos_result, 120);
+    if (code_str.size() > 120 * 30) {
+      code_str = code_str.substr(0, 120 * 30) + "...";
+    }
+    lg::print("{}\n", code_str);
     lg::print(fg(fmt::color::yellow) | fmt::emphasis::bold, "From macro: ");
     lg::print(fg(fmt::color::orange), "{}\n", name.print());
     if (good_info) {
@@ -136,9 +144,11 @@ Val* Compiler::compile_gscond(const goos::Object& form, const goos::Object& rest
  * Current only supports 'thing or '(). Static lists/pairs should be added at some point.
  */
 Val* Compiler::compile_quote(const goos::Object& form, const goos::Object& rest, Env* env) {
-  auto args = get_va(form, rest);
-  va_check(form, args, {{}}, {});
-  auto thing = args.unnamed.at(0);
+  auto args = get_va_no_named(form, rest);
+  if (args.unnamed.size() != 1) {
+    throw_compiler_error(form, "invalid number of arguments to compile quote");
+  }
+  auto& thing = args.unnamed.front();
   switch (thing.type) {
     case goos::ObjectType::SYMBOL:
       return compile_get_sym_obj(thing.as_symbol()->name, env);

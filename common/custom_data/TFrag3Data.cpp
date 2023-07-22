@@ -3,6 +3,12 @@
 #include <algorithm>
 #include <functional>
 
+#ifndef __aarch64__
+#include "xmmintrin.h"
+#else
+#include "third-party/sse2neon/sse2neon.h"
+#endif
+
 #include "common/util/Assert.h"
 
 namespace tfrag3 {
@@ -166,6 +172,7 @@ std::array<math::Vector3f, 3> tie_normal_transform_v2(const std::array<math::Vec
   // vmadday.xyzw acc, vf25, vf18
   // vmaddz.xyzw vf12, vf26, vf18
   result[2] = vf18;
+
   return result;
   //
   // sqc2 vf10, -112(t8)
@@ -173,24 +180,47 @@ std::array<math::Vector3f, 3> tie_normal_transform_v2(const std::array<math::Vec
   // sqc2 vf12, -80(t8)
 }
 
+u32 pack_to_gl_normal(s16 nx, s16 ny, s16 nz) {
+  ASSERT(nx >= -512 && nx <= 511);
+  ASSERT(ny >= -512 && ny <= 511);
+  ASSERT(nz >= -512 && nz <= 511);
+  return (nx & 0x3ff) | ((ny & 0x3ff) << 10) | ((nz & 0x3ff) << 20);
+}
+
 /*!
  * Unpack tie normal by transforming and converting to s16 for OpenGL.
  */
-math::Vector<s16, 3> unpack_tie_normal(const std::array<math::Vector3f, 3>& mat,
-                                       s8 nx,
-                                       s8 ny,
-                                       s8 nz) {
+u32 unpack_tie_normal(const std::array<math::Vector3f, 3>& mat, s8 nx, s8 ny, s8 nz) {
   // rotate the normal
   math::Vector3f nrm = math::Vector3f::zero();
   nrm += mat[0] * nx;
   nrm += mat[1] * ny;
   nrm += mat[2] * nz;
   // convert to s16 for OpenGL renderer
-  nrm *= 0.0078125;      // number from EE asm
-  nrm *= 256.f * 128.f;  // for normalize s16 -> float conversion by OpenGL.
+  // nrm /= 0x100;  // number from EE asm
+  // nrm *= 0x200;  // for normalized s10 -> float conversion by OpenGL.
+  nrm *= 2;  // for normalized s10 -> float conversion by OpenGL.
 
-  return nrm.cast<s16>();
+  auto as_int = nrm.cast<s16>();
+
+  return pack_to_gl_normal(as_int.x(), as_int.y(), as_int.z());
 }
+
+/*
+void tie_normal_v3(__m128* out, const std::array<math::Vector4f, 4>& in) {
+  math::Vector3f x_row = in[0].xyz();
+  math::Vector3f y_row = in[1].xyz();
+  math::Vector3f z_row = in[2].xyz();
+
+  x_row.normalize();
+  y_row = x_row.cross(y_row.cross(x_row)).normalized();
+  z_row = x_row.cross(y_row);
+
+  out[0] = _mm_setr_ps(x_row[0], x_row[1], x_row[2], 0);
+  out[1] = _mm_setr_ps(y_row[0], y_row[1], y_row[2], 0);
+  out[2] = _mm_setr_ps(z_row[0], z_row[1], z_row[2], 0);
+}
+ */
 
 void TieTree::unpack() {
   unpacked.vertices.resize(packed_vertices.color_indices.size());
@@ -206,9 +236,7 @@ void TieTree::unpack() {
         vtx.z = proto_vtx.z;
         vtx.s = proto_vtx.s;
         vtx.t = proto_vtx.t;
-        vtx.nx = proto_vtx.nx << 8;
-        vtx.ny = proto_vtx.ny << 8;
-        vtx.nz = proto_vtx.nz << 8;
+        vtx.nor = pack_to_gl_normal(proto_vtx.nx << 1, proto_vtx.ny << 1, proto_vtx.nz << 1);
         vtx.r = proto_vtx.r;
         vtx.g = proto_vtx.g;
         vtx.b = proto_vtx.b;
@@ -217,27 +245,53 @@ void TieTree::unpack() {
       }
     } else {
       const auto& mat = packed_vertices.matrices[grp.matrix_idx];
-      auto nmat = tie_normal_transform_v2(mat);
 
-      for (u32 src_idx = grp.start_vert; src_idx < grp.end_vert; src_idx++) {
-        auto& vtx = unpacked.vertices[i];
-        vtx.color_index = packed_vertices.color_indices[i];
-        const auto& proto_vtx = packed_vertices.vertices[src_idx];
-        auto temp = mat[0] * proto_vtx.x + mat[1] * proto_vtx.y + mat[2] * proto_vtx.z + mat[3];
-        vtx.x = temp.x();
-        vtx.y = temp.y();
-        vtx.z = temp.z();
-        vtx.s = proto_vtx.s;
-        vtx.t = proto_vtx.t;
-        auto nrm = unpack_tie_normal(nmat, proto_vtx.nx, proto_vtx.ny, proto_vtx.nz);
-        vtx.nx = nrm.x();
-        vtx.ny = nrm.y();
-        vtx.nz = nrm.z();
-        vtx.r = proto_vtx.r;
-        vtx.g = proto_vtx.g;
-        vtx.b = proto_vtx.b;
-        vtx.a = proto_vtx.a;
-        i++;
+      __m128 mat0 = _mm_loadu_ps(mat[0].data());
+      __m128 mat1 = _mm_loadu_ps(mat[1].data());
+      __m128 mat2 = _mm_loadu_ps(mat[2].data());
+      __m128 mat3 = _mm_loadu_ps(mat[3].data());
+
+      if (grp.has_normals) {
+        auto nmat = tie_normal_transform_v2(mat);
+        for (u32 src_idx = grp.start_vert; src_idx < grp.end_vert; src_idx++) {
+          auto& vtx = unpacked.vertices[i];
+          vtx.color_index = packed_vertices.color_indices[i];
+          const auto& proto_vtx = packed_vertices.vertices[src_idx];
+          // auto temp = mat[0] * proto_vtx.x + mat[1] * proto_vtx.y + mat[2] * proto_vtx.z +
+          // mat[3];
+          __m128 transformed = mat3;
+          transformed = _mm_add_ps(transformed, _mm_mul_ps(_mm_set1_ps(proto_vtx.x), mat0));
+          transformed = _mm_add_ps(transformed, _mm_mul_ps(_mm_set1_ps(proto_vtx.y), mat1));
+          transformed = _mm_add_ps(transformed, _mm_mul_ps(_mm_set1_ps(proto_vtx.z), mat2));
+          _mm_storeu_ps(&vtx.x, transformed);
+          vtx.s = proto_vtx.s;
+          vtx.t = proto_vtx.t;
+          vtx.nor = unpack_tie_normal(nmat, proto_vtx.nx, proto_vtx.ny, proto_vtx.nz);
+          vtx.r = proto_vtx.r;
+          vtx.g = proto_vtx.g;
+          vtx.b = proto_vtx.b;
+          vtx.a = proto_vtx.a;
+          i++;
+        }
+      } else {
+        for (u32 src_idx = grp.start_vert; src_idx < grp.end_vert; src_idx++) {
+          auto& vtx = unpacked.vertices[i];
+          vtx.color_index = packed_vertices.color_indices[i];
+          const auto& proto_vtx = packed_vertices.vertices[src_idx];
+          __m128 transformed = mat3;
+          transformed = _mm_add_ps(transformed, _mm_mul_ps(_mm_set1_ps(proto_vtx.x), mat0));
+          transformed = _mm_add_ps(transformed, _mm_mul_ps(_mm_set1_ps(proto_vtx.y), mat1));
+          transformed = _mm_add_ps(transformed, _mm_mul_ps(_mm_set1_ps(proto_vtx.z), mat2));
+          _mm_storeu_ps(&vtx.x, transformed);
+          vtx.s = proto_vtx.s;
+          vtx.t = proto_vtx.t;
+          vtx.nor = 0;
+          vtx.r = proto_vtx.r;
+          vtx.g = proto_vtx.g;
+          vtx.b = proto_vtx.b;
+          vtx.a = proto_vtx.a;
+          i++;
+        }
       }
     }
   }
@@ -383,6 +437,17 @@ void Texture::serialize(Serializer& ser) {
   ser.from_ptr(&load_to_pool);
 }
 
+void IndexTexture::serialize(Serializer& ser) {
+  ser.from_ptr(&w);
+  ser.from_ptr(&h);
+  ser.from_ptr(&combo_id);
+  ser.from_pod_vector(&index_data);
+  ser.from_ptr(&color_table);
+  ser.from_str(&name);
+  ser.from_str(&tpage_name);
+  ser.from_string_vector(&level_names);
+}
+
 void CollisionMesh::serialize(Serializer& ser) {
   ser.from_pod_vector(&vertices);
 }
@@ -394,6 +459,11 @@ void MercDraw::serialize(Serializer& ser) {
   ser.from_ptr(&first_index);
   ser.from_ptr(&index_count);
   ser.from_ptr(&num_triangles);
+}
+
+void Blerc::serialize(Serializer& ser) {
+  ser.from_pod_vector(&float_data);
+  ser.from_pod_vector(&int_data);
 }
 
 void MercModifiableDrawGroup::serialize(Serializer& ser) {
@@ -418,6 +488,8 @@ void MercModifiableDrawGroup::serialize(Serializer& ser) {
   ser.from_pod_vector(&vertex_lump4_addr);
   ser.from_pod_vector(&fragment_mask);
   ser.from_ptr(&expect_vidx_end);
+
+  blerc.serialize(ser);
 }
 
 void MercEffect::serialize(Serializer& ser) {
@@ -488,6 +560,15 @@ void Level::serialize(Serializer& ser) {
     tex.serialize(ser);
   }
 
+  if (ser.is_saving()) {
+    ser.save<size_t>(index_textures.size());
+  } else {
+    index_textures.resize(ser.load<size_t>());
+  }
+  for (auto& tex : index_textures) {
+    tex.serialize(ser);
+  }
+
   for (int geom = 0; geom < 3; ++geom) {
     if (ser.is_saving()) {
       ser.save<size_t>(tfrag_trees[geom].size());
@@ -535,6 +616,8 @@ void MercModifiableDrawGroup::memory_usage(MemoryUsageTracker* tracker) const {
   tracker->add(MemoryUsageCategory::MERC_MOD_DRAW_1, sizeof(MercDraw) * fix_draw.size());
   tracker->add(MemoryUsageCategory::MERC_MOD_DRAW_2, sizeof(MercDraw) * mod_draw.size());
   tracker->add(MemoryUsageCategory::MERC_MOD_TABLE, sizeof(u16) * vertex_lump4_addr.size());
+  tracker->add(MemoryUsageCategory::BLERC, sizeof(BlercFloatData) * blerc.float_data.size());
+  tracker->add(MemoryUsageCategory::BLERC, sizeof(u32) * blerc.int_data.size());
 }
 
 void MercEffect::memory_usage(MemoryUsageTracker* tracker) const {
@@ -628,8 +711,16 @@ void Texture::memory_usage(MemoryUsageTracker* tracker) const {
   tracker->add(MemoryUsageCategory::TEXTURE, data.size() * sizeof(u32));
 }
 
+void IndexTexture::memory_usage(MemoryUsageTracker* tracker) const {
+  tracker->add(MemoryUsageCategory::SPECIAL_TEXTURE, index_data.size());
+  tracker->add(MemoryUsageCategory::SPECIAL_TEXTURE, 256 * 4);  // clut
+}
+
 void Level::memory_usage(MemoryUsageTracker* tracker) const {
   for (const auto& texture : textures) {
+    texture.memory_usage(tracker);
+  }
+  for (const auto& texture : index_textures) {
     texture.memory_usage(tracker);
   }
   for (const auto& tftk : tfrag_trees) {
@@ -656,6 +747,7 @@ void print_memory_usage(const tfrag3::Level& lev, int uncompressed_data_size) {
 
   std::vector<std::pair<std::string, int>> known_categories = {
       {"texture", mem_use.data[tfrag3::MemoryUsageCategory::TEXTURE]},
+      {"special-texture", mem_use.data[tfrag3::MemoryUsageCategory::SPECIAL_TEXTURE]},
       {"tie-deinst-vis", mem_use.data[tfrag3::MemoryUsageCategory::TIE_DEINST_VIS]},
       {"tie-deinst-idx", mem_use.data[tfrag3::MemoryUsageCategory::TIE_DEINST_INDEX]},
       {"tie-inst-vis", mem_use.data[tfrag3::MemoryUsageCategory::TIE_INST_VIS]},
@@ -686,6 +778,7 @@ void print_memory_usage(const tfrag3::Level& lev, int uncompressed_data_size) {
       {"merc-mod-table", mem_use.data[tfrag3::MemoryUsageCategory::MERC_MOD_TABLE]},
       {"merc-mod-draw-1", mem_use.data[tfrag3::MemoryUsageCategory::MERC_MOD_DRAW_1]},
       {"merc-mod-draw-2", mem_use.data[tfrag3::MemoryUsageCategory::MERC_MOD_DRAW_2]},
+      {"blerc", mem_use.data[tfrag3::MemoryUsageCategory::BLERC]},
   };
   for (auto& known : known_categories) {
     total_accounted += known.second;

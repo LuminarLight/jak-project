@@ -7,11 +7,15 @@
 
 #include "game/graphics/opengl_renderer/BucketRenderer.h"
 #include "game/graphics/opengl_renderer/CollideMeshRenderer.h"
+#include "game/graphics/opengl_renderer/Fbo.h"
 #include "game/graphics/opengl_renderer/Profiler.h"
 #include "game/graphics/opengl_renderer/Shader.h"
+#include "game/graphics/opengl_renderer/TextureAnimator.h"
+#include "game/graphics/opengl_renderer/foreground/Generic2.h"
+#include "game/graphics/opengl_renderer/foreground/Merc2.h"
 #include "game/graphics/opengl_renderer/opengl_utils.h"
 #include "game/tools/filter_menu/filter_menu.h"
-#include "game/tools/subtitles/subtitle_editor.h"
+#include "game/tools/subtitle_editor/subtitle_editor.h"
 
 struct RenderOptions {
   bool draw_render_debug_window = false;
@@ -22,7 +26,7 @@ struct RenderOptions {
   bool draw_filters_window = false;
 
   // internal rendering settings - The OpenGLRenderer will internally use this resolution/format.
-  int msaa_samples = 4;
+  int msaa_samples = 2;
   int game_res_w = 640;
   int game_res_h = 480;
 
@@ -37,10 +41,9 @@ struct RenderOptions {
   int draw_region_height = 0;
   int draw_region_width = 0;
 
-  // windows-specific tweaks to the size of the drawing area in borderless.
-  bool borderless_windows_hacks = false;
-
   bool save_screenshot = false;
+  bool quick_screenshot = false;
+  bool internal_res_screenshot = false;
   std::string screenshot_path;
 
   float pmode_alp_register = 0.f;
@@ -48,48 +51,6 @@ struct RenderOptions {
   // when enabled, does a `glFinish()` after each major rendering pass. This blocks until the GPU
   // is done working, making it easier to profile GPU utilization.
   bool gpu_sync = false;
-};
-
-struct Fbo {
-  bool valid = false;  // do we have an OpenGL fbo_id?
-  GLuint fbo_id = -1;
-
-  // optional rgba/zbuffer/stencil data.
-  std::optional<GLuint> tex_id;
-  std::optional<GLuint> zbuf_stencil_id;
-
-  bool multisampled = false;
-  int multisample_count = 0;  // Should be 1 if multisampled is disabled
-
-  bool is_window = false;
-  int width = 640;
-  int height = 480;
-
-  // Does this fbo match the given format? MSAA = 1 will accept a normal buffer, or a multisample 1x
-  bool matches(int w, int h, int msaa) const {
-    int effective_msaa = multisampled ? multisample_count : 1;
-    return valid && width == w && height == h && effective_msaa == msaa;
-  }
-
-  // Free opengl resources, if we have any.
-  void clear() {
-    if (valid) {
-      glDeleteFramebuffers(1, &fbo_id);
-      fbo_id = -1;
-
-      if (tex_id) {
-        glDeleteTextures(1, &tex_id.value());
-        tex_id.reset();
-      }
-
-      if (zbuf_stencil_id) {
-        glDeleteRenderbuffers(1, &zbuf_stencil_id.value());
-        zbuf_stencil_id.reset();
-      }
-
-      valid = false;
-    }
-  }
 };
 
 /*!
@@ -116,6 +77,7 @@ class OpenGLRenderer {
   void dispatch_buckets_jak2(DmaFollower dma, ScopedProfilerNode& prof, bool sync_after_buckets);
 
   void do_pcrtc_effects(float alp, SharedRenderState* render_state, ScopedProfilerNode& prof);
+  void blit_display();
   void init_bucket_renderers_jak1();
   void init_bucket_renderers_jak2();
   void draw_renderer_selection_window();
@@ -125,7 +87,8 @@ class OpenGLRenderer {
                          int x,
                          int y,
                          GLuint fbo,
-                         int read_buffer);
+                         int read_buffer,
+                         bool quick_screenshot);
   template <typename T, typename U, class... Args>
   T* init_bucket_renderer(const std::string& name, BucketCategory cat, U id, Args&&... args) {
     auto renderer = std::make_unique<T>(name, (int)id, std::forward<Args>(args)...);
@@ -135,12 +98,19 @@ class OpenGLRenderer {
     return ret;
   }
 
+  const std::vector<GLuint>* anim_slot_array() {
+    return m_texture_animator ? m_texture_animator->slots() : nullptr;
+  }
+
   SharedRenderState m_render_state;
   Profiler m_profiler;
   SmallProfiler m_small_profiler;
-  SubtitleEditor m_subtitle_editor;
+  SubtitleEditor* m_subtitle_editor = nullptr;
   FiltersMenu m_filters_menu;
 
+  std::shared_ptr<Merc2> m_merc2;
+  std::shared_ptr<Generic2> m_generic2;
+  std::shared_ptr<TextureAnimator> m_texture_animator;
   std::vector<std::unique_ptr<BucketRenderer>> m_bucket_renderers;
   std::vector<BucketCategory> m_bucket_categories;
 
@@ -156,6 +126,7 @@ class OpenGLRenderer {
       Fbo window;          // provided by glfw
       Fbo render_buffer;   // temporary buffer to render to
       Fbo resolve_buffer;  // temporary buffer to resolve to
+      Fbo back_buffer;     // the previous buffer we rendered
     } resources;
 
     Fbo* render_fbo = nullptr;  // the selected fbo from the three above to use for rendering

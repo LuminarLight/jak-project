@@ -444,7 +444,7 @@
          (-> self control trans)
          :to self
          )
-       (dummy-10 (-> self skel effect) 'effect-land -1.0 -1)
+       (effect-control-method-10 (-> self skel effect) 'effect-land -1.0 -1)
        )
       )
     (deg-diff (vector-y-angle gp-0) (vector-y-angle (-> self control transv)))
@@ -1396,7 +1396,7 @@
                             (vector-! (new 'stack-no-clear 'vector) (-> self control trans) (-> self control last-known-safe-ground))
                             )
                           )
-                       (logtest? (-> self control root-prim prim-core action) (collide-action ca-15))
+                       (logtest? (-> self control root-prim prim-core action) (collide-action racer-grounded))
                        )
                   (+! (-> self racer stuck-count) 1)
                   (go target-racing-smack 122880.0 #f)

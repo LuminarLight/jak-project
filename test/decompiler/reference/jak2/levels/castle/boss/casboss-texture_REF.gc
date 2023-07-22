@@ -7,7 +7,7 @@
     (new 'static 'texture-anim-array :type texture-anim
       (new 'static 'texture-anim
         :num-layers #x5
-        :func 'krew-texture-anim-func
+        :func-id 'krew-texture-anim-func
         :init-func #f
         :tex #f
         :tex-name "krew-holo-dest"
@@ -19,7 +19,7 @@
         :clamp (new 'static 'gs-clamp :wms (gs-tex-wrap-mode clamp) :wmt (gs-tex-wrap-mode clamp))
         :data (new 'static 'array texture-anim-layer 6
           (new 'static 'texture-anim-layer
-            :func 'default-texture-anim-layer-func
+            :func-id 'default-texture-anim-layer-func
             :init-func #f
             :tex #f
             :end-time 1200.0
@@ -38,10 +38,10 @@
             :end-st-scale (new 'static 'vector2 :data (new 'static 'array float 2 1.0 1.0))
             :end-st-offset (new 'static 'vector2 :data (new 'static 'array float 2 0.5 0.5))
             :end-qs (new 'static 'vector :x 1.0 :y 1.0 :z 1.0 :w 1.0)
-            :end-st-rot (degrees 3932160.0)
+            :end-st-rot (degrees 3932160)
             )
           (new 'static 'texture-anim-layer
-            :func 'default-texture-anim-layer-func
+            :func-id 'default-texture-anim-layer-func
             :init-func #f
             :tex #f
             :end-time 1200.0
@@ -62,7 +62,7 @@
             :end-qs (new 'static 'vector :x 1.0 :y 1.0 :z 1.0 :w 1.0)
             )
           (new 'static 'texture-anim-layer
-            :func 'default-texture-anim-layer-func
+            :func-id 'default-texture-anim-layer-func
             :init-func #f
             :tex #f
             :end-time 1200.0
@@ -81,10 +81,10 @@
             :end-st-scale (new 'static 'vector2 :data (new 'static 'array float 2 1.0 1.0))
             :end-st-offset (new 'static 'vector2 :data (new 'static 'array float 2 0.5 0.5))
             :end-qs (new 'static 'vector :x 1.0 :y 1.0 :z 1.0 :w 1.0)
-            :end-st-rot (degrees 65536.0)
+            :end-st-rot (degrees 65536)
             )
           (new 'static 'texture-anim-layer
-            :func 'default-texture-anim-layer-func
+            :func-id 'default-texture-anim-layer-func
             :init-func #f
             :tex #f
             :end-time 1200.0
@@ -103,10 +103,10 @@
             :end-st-scale (new 'static 'vector2 :data (new 'static 'array float 2 1.0 1.0))
             :end-st-offset (new 'static 'vector2 :data (new 'static 'array float 2 0.5 0.5))
             :end-qs (new 'static 'vector :x 1.0 :y 1.0 :z 1.0 :w 1.0)
-            :end-st-rot (degrees 65536.0)
+            :end-st-rot (degrees 65536)
             )
           (new 'static 'texture-anim-layer
-            :func 'default-texture-anim-layer-func
+            :func-id 'default-texture-anim-layer-func
             :init-func #f
             :tex #f
             :end-time 1200.0

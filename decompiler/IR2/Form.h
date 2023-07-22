@@ -1240,6 +1240,7 @@ class DerefToken {
     return m_kind == Kind::FIELD_NAME && m_name == name;
   }
 
+  bool is_int() const { return m_kind == Kind::INTEGER_CONSTANT; }
   bool is_int(int x) const { return m_kind == Kind::INTEGER_CONSTANT && m_int_constant == x; }
 
   bool is_expr() const { return m_kind == Kind::INTEGER_EXPRESSION; }
@@ -1293,6 +1294,7 @@ class DerefElement : public FormElement {
 
  private:
   ConstantTokenElement* try_as_art_const(const Env& env, FormPool& pool);
+  GenericElement* try_as_curtime(FormPool& pool);
 
   Form* m_base = nullptr;
   bool m_is_addr_of = false;
@@ -1420,6 +1422,7 @@ class LetElement : public FormElement {
   void collect_vars(RegAccessSet& vars, bool recursive) const override;
   void get_modified_regs(RegSet& regs) const override;
   Form* body() { return m_body; }
+  const Form* body() const { return m_body; }
   void set_body(Form* new_body);
   bool allow_in_if() const override { return false; }
 
@@ -1428,6 +1431,7 @@ class LetElement : public FormElement {
     Form* src = nullptr;
   };
   std::vector<Entry>& entries() { return m_entries; }
+  const std::vector<Entry>& entries() const { return m_entries; }
   void add_entry(const Entry& e);
   bool is_star() const { return m_star; }
 
@@ -1770,8 +1774,8 @@ class DefpartElement : public FormElement {
       u16 field_id;
       u16 flags;
       std::vector<LinkedWord> data;
-      goos::Object sound_spec;
-      goos::Object userdata;  // backup
+      goos::Object sound_spec;  // any static object actually
+      goos::Object userdata;    // backup
 
       bool is_sp_end(GameVersion version) const {
         switch (version) {
@@ -1811,7 +1815,7 @@ class WithDmaBufferAddBucketElement : public FormElement {
   WithDmaBufferAddBucketElement(RegisterAccess dma_buf,
                                 Form* dma_buf_val,
                                 Form* bucket,
-                                const std::vector<FormElement*>& body);
+                                Form* body);
 
   goos::Object to_form_internal(const Env& env) const override;
   void apply(const std::function<void(FormElement*)>& f) override;
@@ -1829,7 +1833,7 @@ class WithDmaBufferAddBucketElement : public FormElement {
   RegisterAccess m_dma_buf;
   Form* m_dma_buf_val;
   Form* m_bucket;
-  std::vector<FormElement*> m_body;
+  Form* m_body;
 };
 
 class ResLumpMacroElement : public FormElement {

@@ -135,17 +135,27 @@ void Sprite3::opengl_setup_normal() {
  * This should get the dma chain immediately after the call to sprite-draw-distorters.
  * It ends right before the sprite-add-matrix-data for the 3d's
  */
-void Sprite3::handle_sprite_frame_setup(DmaFollower& dma, GameVersion version) {
+void Sprite3::handle_sprite_frame_setup(DmaFollower& dma,
+                                        GameVersion version,
+                                        SharedRenderState* render_state,
+                                        ScopedProfilerNode& /*prof*/) {
   // first is some direct data
   auto direct_data = dma.read_and_advance();
   ASSERT(direct_data.size_bytes == 3 * 16);
   memcpy(m_sprite_direct_setup, direct_data.data, 3 * 16);
+  ASSERT(m_sprite_direct_setup[0] == 0x2000000000008001);
+  ASSERT(m_sprite_direct_setup[1] == 0xEEEEEEEEEEEEEEEE);
+  ASSERT(m_sprite_direct_setup[2] == 0x000000000005126B);
+  ASSERT(m_sprite_direct_setup[3] == 0x0000000000000047);
+  ASSERT(m_sprite_direct_setup[4] == 0x0000000000000005);
+  ASSERT(m_sprite_direct_setup[5] == 0x0000000000000008);
 
   // next would be the program, but it's 0 size on the PC and isn't sent.
 
   // next is the "frame data"
   switch (version) {
     case GameVersion::Jak1: {
+      render_state->shaders[ShaderId::SPRITE3].activate();
       auto frame_data = dma.read_and_advance();
       ASSERT(frame_data.size_bytes == (int)sizeof(SpriteFrameDataJak1));  // very cool
       ASSERT(frame_data.vifcode0().kind == VifCode::Kind::STCYCL);
@@ -161,6 +171,7 @@ void Sprite3::handle_sprite_frame_setup(DmaFollower& dma, GameVersion version) {
       m_frame_data.from_jak1(jak1_data);
     } break;
     case GameVersion::Jak2: {
+      render_state->shaders[ShaderId::SPRITE3].activate();
       auto frame_data = dma.read_and_advance();
       ASSERT(frame_data.size_bytes == (int)sizeof(SpriteFrameData));  // very cool
       ASSERT(frame_data.vifcode0().kind == VifCode::Kind::STCYCL);
@@ -278,6 +289,27 @@ void Sprite3::render_2d_group0(DmaFollower& dma,
   }
 }
 
+/*!
+ * Run the pre-sprite directrenderer.
+ */
+bool Sprite3::render_direct(DmaFollower& dma,
+                            SharedRenderState* render_state,
+                            ScopedProfilerNode& prof) {
+  m_direct.reset_state();
+  while (dma.current_tag().qwc != 7 && dma.current_tag_offset() != render_state->next_bucket) {
+    auto direct_data = dma.read_and_advance();
+    m_direct.render_vif(direct_data.vif0(), direct_data.vif1(), direct_data.data,
+                        direct_data.size_bytes, render_state, prof);
+  }
+  m_direct.flush_pending(render_state, prof);
+
+  // if sprites are off, after all the directrenderer dma, there is nothing left and we must exit
+  if (dma.current_tag_offset() == render_state->next_bucket) {
+    return true;
+  }
+  return false;
+}
+
 void Sprite3::render_fake_shadow(DmaFollower& dma) {
   // TODO
   // nop + flushe
@@ -372,23 +404,30 @@ void Sprite3::render_jak2(DmaFollower& dma,
                           ScopedProfilerNode& prof) {
   m_debug_stats = {};
   auto data0 = dma.read_and_advance();
-  ASSERT(data0.vif1() == 0 || data0.vifcode1().kind == VifCode::Kind::NOP);
   ASSERT(data0.vif0() == 0 || data0.vifcode0().kind == VifCode::Kind::MARK);
+  ASSERT(data0.vif1() == 0 || data0.vifcode1().kind == VifCode::Kind::NOP);
   ASSERT(data0.size_bytes == 0);
 
   if (dma.current_tag_offset() == render_state->next_bucket) {
     return;
   }
 
-  // First is the distorter (temporarily disabled for jak 2)
+  // Before anything else, some directrenderer DMA might have been sent
   {
-    // auto child = prof.make_scoped_child("distorter");
-    // render_distorter(dma, render_state, child);
+    auto child = prof.make_scoped_child("direct");
+    if (render_direct(dma, render_state, child)) {
+      return;
+    }
+  }
+
+  // First is the distorter
+  {
+    auto child = prof.make_scoped_child("distorter");
+    render_distorter(dma, render_state, child);
   }
 
   // next, the normal sprite stuff
-  render_state->shaders[ShaderId::SPRITE3].activate();
-  handle_sprite_frame_setup(dma, render_state->version);
+  handle_sprite_frame_setup(dma, render_state->version, render_state, prof);
 
   // 3d sprites
   render_3d(dma);
@@ -454,16 +493,22 @@ void Sprite3::render_jak1(DmaFollower& dma,
     return;
   }
 
+  // Before anything else, some directrenderer DMA might have been sent
+  {
+    auto child = prof.make_scoped_child("direct");
+    if (render_direct(dma, render_state, child)) {
+      return;
+    }
+  }
+
   // First is the distorter
   {
     auto child = prof.make_scoped_child("distorter");
     render_distorter(dma, render_state, child);
   }
 
-  render_state->shaders[ShaderId::SPRITE3].activate();
-
   // next, sprite frame setup.
-  handle_sprite_frame_setup(dma, render_state->version);
+  handle_sprite_frame_setup(dma, render_state->version, render_state, prof);
 
   // 3d sprites
   render_3d(dma);
@@ -561,7 +606,7 @@ void Sprite3::flush_sprites(SharedRenderState* render_state,
     tex = render_state->texture_pool->lookup(tbp);
 
     if (!tex) {
-      lg::warn("Failed to find texture at {}, using random", tbp);
+      lg::warn("Failed to find texture at {}, using random (sprite)", tbp);
       tex = render_state->texture_pool->get_placeholder_texture();
     }
     ASSERT(tex);

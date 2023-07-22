@@ -85,28 +85,36 @@ Val* Compiler::compile_asm_text_file(const goos::Object& form, const goos::Objec
   auto args = get_va(form, rest);
   va_check(form, args, {goos::ObjectType::SYMBOL}, {{"files", {true, goos::ObjectType::PAIR}}});
 
-  // list of files per text version.
-  std::vector<std::string> inputs;
-
   // what kind of text file?
   const auto kind = symbol_string(args.unnamed.at(0));
 
-  // open all project files specified (usually one).
-  for_each_in_list(args.named.at("files"), [this, &inputs, &form, &kind](const goos::Object& o) {
-    if (o.is_string()) {
-      open_text_project(kind, o.as_string()->data, inputs);
-    } else {
-      throw_compiler_error(form, "Invalid object {} in asm-text-file files list.", o.print());
-    }
-  });
-
   // compile files.
-  if (kind == "subtitle") {
+  if (kind == "subtitle" || kind == "subtitle-v2") {
+    std::vector<GameSubtitleDefinitionFile> inputs;
+    // open all project files specified (usually one).
+    for_each_in_list(args.named.at("files"), [this, &inputs, &form, &kind](const goos::Object& o) {
+      if (o.is_string()) {
+        open_subtitle_project(kind, o.as_string()->data, inputs);
+      } else {
+        throw_compiler_error(form, "Invalid object {} in asm-text-file files list.", o.print());
+      }
+    });
     GameSubtitleDB db;
-    db.m_subtitle_groups = std::make_unique<GameSubtitleGroups>();
-    db.m_subtitle_groups->hydrate_from_asset_file();
-    compile_game_subtitle(inputs, db, m_make.compiler_output_prefix());
+    if (kind == "subtitle") {
+    } else {
+      db.m_subtitle_version = GameSubtitleDB::SubtitleFormat::V2;
+    }
+    compile_game_subtitles(inputs, db, m_make.compiler_output_prefix());
   } else if (kind == "text") {
+    std::vector<GameTextDefinitionFile> inputs;
+    // open all project files specified (usually one).
+    for_each_in_list(args.named.at("files"), [this, &inputs, &form, &kind](const goos::Object& o) {
+      if (o.is_string()) {
+        open_text_project(kind, o.as_string()->data, inputs);
+      } else {
+        throw_compiler_error(form, "Invalid object {} in asm-text-file files list.", o.print());
+      }
+    });
     GameTextDB db;
     compile_game_text(inputs, db, m_make.compiler_output_prefix());
   } else {
@@ -197,7 +205,7 @@ Val* Compiler::compile_listen_to_target(const goos::Object& form,
                                         Env* env) {
   (void)env;
   std::string ip = "127.0.0.1";
-  int port = DECI2_PORT;
+  int port = -1;
   bool got_port = false, got_ip = false;
 
   for_each_in_list(rest, [&](const goos::Object& o) {
@@ -591,6 +599,13 @@ std::vector<SymbolInfo>* Compiler::lookup_exact_name_info(const std::string& nam
   } else {
     return nullptr;
   }
+}
+
+std::optional<TypeSpec> Compiler::lookup_typespec(const std::string& symbol_name) const {
+  if (m_symbol_types.find(symbol_name) != m_symbol_types.end()) {
+    return m_symbol_types.at(symbol_name);
+  }
+  return {};
 }
 
 Val* Compiler::compile_load_project(const goos::Object& form, const goos::Object& rest, Env*) {

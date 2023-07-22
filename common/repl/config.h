@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/versions.h"
+#include "common/versions/versions.h"
 
 #include "third-party/json.hpp"
 
@@ -31,6 +31,7 @@ struct Config {
   Config(GameVersion _game_version) : game_version(_game_version){};
 
   // this is the default REPL configuration
+  std::string game_version_folder;
   int target_connect_attempts = 30;
   std::vector<std::string> asm_file_search_dirs = {};
   bool append_keybinds = true;
@@ -43,6 +44,7 @@ struct Config {
       {KeyBind::Modifier::CTRL, "G", "Attach the debugger to the process", "(dbgc)"},
       {KeyBind::Modifier::CTRL, "B", "Displays the most recently caught backtrace", "(:di)"},
       {KeyBind::Modifier::CTRL, "N", "Full build of the game", "(mi)"}};
+  bool per_game_history = true;
 };
 void to_json(json& j, const Config& obj);
 void from_json(const json& j, Config& obj);

@@ -10,6 +10,10 @@ Shrub::~Shrub() {
   discard_tree_cache();
 }
 
+void Shrub::init_shaders(ShaderLibrary& shaders) {
+  m_uniforms.decal = glGetUniformLocation(shaders[ShaderId::SHRUB].id(), "decal");
+}
+
 void Shrub::render(DmaFollower& dma, SharedRenderState* render_state, ScopedProfilerNode& prof) {
   if (!m_enabled) {
     while (dma.current_tag_offset() != render_state->next_bucket) {
@@ -239,7 +243,15 @@ void Shrub::render_tree(int idx,
   }
 
   Timer interp_timer;
-  interp_time_of_day_fast(settings.itimes, tree.tod_cache, m_color_result.data());
+#ifndef __aarch64__
+  if (m_use_fast_time_of_day) {
+    interp_time_of_day_fast(settings.itimes, tree.tod_cache, m_color_result.data());
+  } else {
+    interp_time_of_day_slow(settings.itimes, *tree.colors, m_color_result.data());
+  }
+#else
+  interp_time_of_day_slow(settings.itimes, *tree.colors, m_color_result.data());
+#endif
   tree.perf.tod_time.add(interp_timer.getSeconds());
 
   Timer setup_timer;
@@ -297,6 +309,8 @@ void Shrub::render_tree(int idx,
       glBindTexture(GL_TEXTURE_2D, m_textures->at(draw.tree_tex_id));
       last_texture = draw.tree_tex_id;
     }
+
+    glUniform1i(m_uniforms.decal, draw.mode.get_decal() ? 1 : 0);
 
     auto double_draw = setup_tfrag_shader(render_state, draw.mode, ShaderId::SHRUB);
 

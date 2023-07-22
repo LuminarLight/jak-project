@@ -188,9 +188,8 @@ GlowRenderer::GlowRenderer() {
                GL_UNSIGNED_BYTE, nullptr);
   glGenRenderbuffers(1, &m_ogl.probe_fbo_zbuf_rb);
   glBindRenderbuffer(GL_RENDERBUFFER, m_ogl.probe_fbo_zbuf_rb);
-  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_ogl.probe_fbo_w,
-                        m_ogl.probe_fbo_h);
-  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER,
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_ogl.probe_fbo_w, m_ogl.probe_fbo_h);
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER,
                             m_ogl.probe_fbo_zbuf_rb);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
                          m_ogl.probe_fbo_rgba_tex, 0);
@@ -469,23 +468,23 @@ void GlowRenderer::blit_depth(SharedRenderState* render_state) {
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glBindRenderbuffer(GL_RENDERBUFFER, m_ogl.probe_fbo_zbuf_rb);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, m_ogl.probe_fbo_w,
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_ogl.probe_fbo_w,
                           m_ogl.probe_fbo_h);
   }
 
   glBindFramebuffer(GL_READ_FRAMEBUFFER, render_state->render_fb);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_ogl.probe_fbo);
 
-  glBlitFramebuffer(render_state->render_fb_x,                              // srcX0
-                    render_state->render_fb_y,                              // srcY0
-                    render_state->render_fb_x + render_state->render_fb_w,  // srcX1
-                    render_state->render_fb_y + render_state->render_fb_h,  // srcY1
-                    0,                                                      // dstX0
-                    0,                                                      // dstY0
-                    m_ogl.probe_fbo_w,                                      // dstX1
-                    m_ogl.probe_fbo_h,                                      // dstY1
-                    GL_DEPTH_BUFFER_BIT,                                    // mask
-                    GL_NEAREST                                              // filter
+  glBlitFramebuffer(0,                          // srcX0
+                    0,                          // srcY0
+                    render_state->render_fb_w,  // srcX1
+                    render_state->render_fb_h,  // srcY1
+                    0,                          // dstX0
+                    0,                          // dstY0
+                    m_ogl.probe_fbo_w,          // dstX1
+                    m_ogl.probe_fbo_h,          // dstY1
+                    GL_DEPTH_BUFFER_BIT,        // mask
+                    GL_NEAREST                  // filter
   );
 }
 
@@ -538,6 +537,9 @@ void GlowRenderer::draw_probes(SharedRenderState* render_state,
   glBindVertexArray(m_ogl.vao);
   glEnable(GL_PRIMITIVE_RESTART);
   glPrimitiveRestartIndex(UINT32_MAX);
+  GLint old_viewport[4];
+  glGetIntegerv(GL_VIEWPORT, old_viewport);
+  glViewport(0, 0, m_ogl.probe_fbo_w, m_ogl.probe_fbo_h);
   glBindBuffer(GL_ARRAY_BUFFER, m_ogl.vertex_buffer);
   glBufferData(GL_ARRAY_BUFFER, m_next_vertex * sizeof(Vertex), m_vertex_buffer.data(),
                GL_STREAM_DRAW);
@@ -554,6 +556,7 @@ void GlowRenderer::draw_probes(SharedRenderState* render_state,
   glDepthFunc(GL_GEQUAL);
   glDrawElements(GL_TRIANGLE_STRIP, idx_end - idx_start, GL_UNSIGNED_INT,
                  (void*)(idx_start * sizeof(u32)));
+  glViewport(old_viewport[0], old_viewport[1], old_viewport[2], old_viewport[3]);
 }
 
 /*!
@@ -700,7 +703,7 @@ void GlowRenderer::draw_sprites(SharedRenderState* render_state, ScopedProfilerN
     const auto& record = m_sprite_records[i];
     auto tex = render_state->texture_pool->lookup(record.tbp);
     if (!tex) {
-      fmt::print("Failed to find texture at {}, using random", record.tbp);
+      fmt::print("Failed to find texture at {}, using random (glow)", record.tbp);
       tex = render_state->texture_pool->get_placeholder_texture();
     }
     glActiveTexture(GL_TEXTURE0);
