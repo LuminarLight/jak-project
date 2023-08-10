@@ -126,17 +126,16 @@
     :camera-foot-offset 4096.0
     :camera-air-max-angle-offset 5461.3335
     :camera-max-lookaround-speed 40960.0
-    :seat-count 2
+    :seat-count 1 ; There are no seats in this thing, other than the turret. So we will only define that.
     :section-count 4
     :rider-stance #x1
     :grab-rail-array #f
     :seat-array (new 'static 'inline-array vehicle-seat-info 4
       (new 'static 'vehicle-seat-info
-        :position (new 'static 'vector :x 5120.0 :y 819.2 :z 2457.6 :w (the-as float #x10000))
+        ;:position (new 'static 'vector :y 3686.4 :z -8192.0 :w (the-as float #x40000))
+        :position (new 'static 'vector :y 3100.0 :z -8500.0 :w (the-as float #x40000)) ; Modified to prevent clipping.
         )
-      (new 'static 'vehicle-seat-info
-        :position (new 'static 'vector :x -5120.0 :y 819.2 :z 2457.6 :w (the-as float #x20000))
-        )
+      (new 'static 'vehicle-seat-info)
       (new 'static 'vehicle-seat-info)
       (new 'static 'vehicle-seat-info)
       )
@@ -482,7 +481,6 @@
         (set! (-> gp-1 params proc) #f)
         (set! (-> gp-1 params handle) (the-as handle #f))
         (set! (-> gp-1 params user-data) (the-as uint 0))
-        (set! (-> gp-1 params flags) (traffic-spawn-flags))
         (set! (-> gp-1 params guard-type) (the-as uint 7))
         (vector-reset! (-> gp-1 params velocity))
         (vector-reset! (-> gp-1 params position))
@@ -578,6 +576,7 @@
                      (set! (-> s3-0 position quad) (-> (the-as process-drawable s4-0) root trans quad))
                      (quaternion-copy! (-> s3-0 rotation) (-> (the-as process-drawable s4-0) root quat))
                      (activate-by-handle *traffic-engine* s3-0)
+                     (vehicle-rider-spawn (the-as helldog s4-0) crimson-guard-rider s3-0) ; Added this here, otherwise it would have no rider.
                      )
                    )
                  )
