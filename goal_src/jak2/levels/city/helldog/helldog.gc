@@ -481,6 +481,7 @@
         (set! (-> gp-1 params proc) #f)
         (set! (-> gp-1 params handle) (the-as handle #f))
         (set! (-> gp-1 params user-data) (the-as uint 0))
+        (set! (-> gp-1 params flags) (traffic-spawn-flags))
         (set! (-> gp-1 params guard-type) (the-as uint 7))
         (vector-reset! (-> gp-1 params velocity))
         (vector-reset! (-> gp-1 params position))
