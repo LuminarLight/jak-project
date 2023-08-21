@@ -6,7 +6,6 @@
   "crimson-guard-ag.go"
   "citizen-chick-ag.go"
   "hellcat-ag.go"
-  "helldog-ag.go"
   "carc-ag.go"
   "cara-ag.go"
   "carb-ag.go"
