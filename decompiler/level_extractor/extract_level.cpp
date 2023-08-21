@@ -318,6 +318,21 @@ void extract_from_level(const ObjectFileDB& db,
       extract_bsp_from_level(db, tex_db, dgo_name, config.hacks, extract_collision, level_data);
   extract_art_groups_from_level(db, tex_db, tex_remap, dgo_name, level_data);
 
+  //----------------------------------------------------------------//
+  // Hacks to have models and textures of one level in another.
+  //----------------------------------------------------------------//
+  if (dgo_name == "LWIDEA.DGO") {
+    const std::string local_dgo_name = "LHELLDOG.DGO";
+    extract_art_groups_from_level(db, tex_db,
+                                  extract_bsp_from_level(db, tex_db, local_dgo_name, config.hacks,
+                                                         extract_collision, level_data),
+                                  local_dgo_name, level_data);
+  }
+
+  //----------------------------------------------------------------//
+  // HACKS OVER
+  //----------------------------------------------------------------//
+
   Serializer ser;
   level_data.serialize(ser);
   auto compressed =

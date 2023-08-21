@@ -1657,7 +1657,7 @@
 (defmethod init-skel-and-rigid-body hellcat ((obj hellcat))
   (initialize-skeleton
     obj
-    (the-as skeleton-group (art-group-get-by-name *level* "skel-hellcat" (the-as (pointer uint32) #f)))
+    (the-as skeleton-group (art-group-get-by-name *level* "skel-helldog" (the-as (pointer uint32) #f)))
     (the-as pair 0)
     )
   (alloc-and-init-rigid-body-control obj *hellcat-constants*)
