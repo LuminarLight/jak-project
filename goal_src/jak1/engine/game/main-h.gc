@@ -69,6 +69,7 @@
 (define *sync-dma* #f)
 (define *display-strip-lines* 0)
 (define *display-nav-marks* #f)
+(define *display-nav-marks-extras* #f)
 (define *display-path-marks* #f)
 (define *display-vol-marks* #f)
 (define *display-water-marks* #f)
